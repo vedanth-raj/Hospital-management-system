@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { query } from '@/lib/db';
+import { createPatientAppointment, getPatientAppointments } from '@/lib/demo-store';
 
 export async function GET(request: NextRequest) {
-  try {
-    const user = await getCurrentUser();
-    if (!user || user.role !== 'patient') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'patient') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
+  try {
     // Get patient ID
     const patientResult = await query('SELECT id FROM patients WHERE user_id = $1', [user.userId]);
     if (patientResult.rows.length === 0) {
@@ -41,19 +42,19 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching appointments:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ appointments: getPatientAppointments(user.userId) }, { status: 200 });
   }
 }
 
 export async function POST(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'patient') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { doctorId, appointmentDate, appointmentTime, reasonForVisit } = await request.json();
+
   try {
-    const user = await getCurrentUser();
-    if (!user || user.role !== 'patient') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { doctorId, appointmentDate, appointmentTime, reasonForVisit } = await request.json();
-
     // Get patient ID
     const patientResult = await query('SELECT id FROM patients WHERE user_id = $1', [user.userId]);
     if (patientResult.rows.length === 0) {
@@ -76,6 +77,20 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Error creating appointment:', error);
+    const appointment = createPatientAppointment(user.userId, {
+      doctorId,
+      appointmentDate,
+      appointmentTime,
+      reasonForVisit,
+    });
+
+    if (appointment) {
+      return NextResponse.json(
+        { message: 'Appointment booked', appointmentId: appointment.id },
+        { status: 201 }
+      );
+    }
+
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

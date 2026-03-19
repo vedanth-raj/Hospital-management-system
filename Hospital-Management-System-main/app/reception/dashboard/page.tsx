@@ -56,10 +56,18 @@ export default function ReceptionDashboard() {
             </CardHeader>
             <CardContent className="space-y-2">
               <p className="text-sm text-muted-foreground mb-4">Available soon</p>
-              <Button variant="outline" className="w-full border-secondary/30" disabled>
+              <Button
+                variant="outline"
+                className="w-full border-secondary/30"
+                onClick={() => router.push('/reception/queue')}
+              >
                 Add Patient to Queue
               </Button>
-              <Button variant="outline" className="w-full border-secondary/30" disabled>
+              <Button
+                variant="outline"
+                className="w-full border-secondary/30"
+                onClick={() => router.push('/reception/queue')}
+              >
                 Check In Patient
               </Button>
             </CardContent>

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Empty } from '@/components/ui/empty';
 import { Calendar, ArrowLeft } from 'lucide-react';
@@ -20,6 +22,10 @@ interface Appointment {
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointmentDate, setAppointmentDate] = useState('');
+  const [appointmentTime, setAppointmentTime] = useState('');
+  const [reasonForVisit, setReasonForVisit] = useState('');
+  const [isBooking, setIsBooking] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
@@ -40,6 +46,43 @@ export default function AppointmentsPage() {
 
     fetchAppointments();
   }, []);
+
+  const refreshAppointments = async () => {
+    const res = await fetch('/api/patient/appointments', { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      setAppointments(data.appointments || []);
+    }
+  };
+
+  const bookAppointment = async () => {
+    if (!appointmentDate || !appointmentTime || !reasonForVisit) return;
+    setIsBooking(true);
+    try {
+      const res = await fetch('/api/patient/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          doctorId: 1,
+          appointmentDate,
+          appointmentTime,
+          reasonForVisit,
+        }),
+      });
+
+      if (res.ok) {
+        setAppointmentDate('');
+        setAppointmentTime('');
+        setReasonForVisit('');
+        await refreshAppointments();
+      }
+    } catch (error) {
+      console.error('Booking failed:', error);
+    } finally {
+      setIsBooking(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -68,6 +111,28 @@ export default function AppointmentsPage() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
+        <Card className="mb-6 border-secondary/20">
+          <CardHeader>
+            <CardTitle>Book New Appointment</CardTitle>
+            <CardDescription>Create a new appointment and it will appear below instantly.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-3">
+            <Input type="date" value={appointmentDate} onChange={(e) => setAppointmentDate(e.target.value)} />
+            <Input type="time" value={appointmentTime} onChange={(e) => setAppointmentTime(e.target.value)} />
+            <Button className="bg-primary hover:bg-primary/90" onClick={bookAppointment} disabled={isBooking}>
+              {isBooking ? 'Booking...' : 'Book Appointment'}
+            </Button>
+            <div className="md:col-span-3">
+              <Textarea
+                rows={3}
+                placeholder="Reason for visit"
+                value={reasonForVisit}
+                onChange={(e) => setReasonForVisit(e.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="border-secondary/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -85,7 +150,9 @@ export default function AppointmentsPage() {
                 title="No Appointments"
                 description="You haven't booked any appointments yet. Schedule one to get started."
               >
-                <Button className="mt-4 bg-primary hover:bg-primary/90">Book an Appointment</Button>
+                <Button className="mt-4 bg-primary hover:bg-primary/90" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                  Book an Appointment
+                </Button>
               </Empty>
             ) : (
               <div className="overflow-x-auto">

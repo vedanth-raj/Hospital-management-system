@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { query } from '@/lib/db';
+import { getPatientQueueStatus, joinQueueForPatient } from '@/lib/demo-store';
 
 export async function GET(request: NextRequest) {
-  try {
-    const user = await getCurrentUser();
-    if (!user || user.role !== 'patient') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'patient') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
+  try {
     // Get patient ID
     const patientResult = await query('SELECT id FROM patients WHERE user_id = $1', [user.userId]);
     if (patientResult.rows.length === 0) {
@@ -49,19 +50,20 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching queue status:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const queueStatus = getPatientQueueStatus(user.userId);
+    return NextResponse.json(queueStatus || { queuePosition: null }, { status: 200 });
   }
 }
 
 export async function POST(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'patient') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { doctorId, priority = 'normal' } = await request.json();
+
   try {
-    const user = await getCurrentUser();
-    if (!user || user.role !== 'patient') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { doctorId, priority = 'normal' } = await request.json();
-
     // Get patient ID
     const patientResult = await query('SELECT id FROM patients WHERE user_id = $1', [user.userId]);
     if (patientResult.rows.length === 0) {
@@ -92,6 +94,13 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Error joining queue:', error);
+    const queue = joinQueueForPatient(user.userId, Number(doctorId || 1), priority);
+    if (queue) {
+      return NextResponse.json(
+        { message: 'Added to queue', queueId: queue.id, position: queue.queuePosition },
+        { status: 201 }
+      );
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

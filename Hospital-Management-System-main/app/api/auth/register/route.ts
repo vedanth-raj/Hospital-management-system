@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { hashPassword, setAuthCookie, generateToken } from '@/lib/auth';
+import { registerDemoUser } from '@/lib/demo-store';
 
 export async function POST(request: NextRequest) {
   try {
@@ -83,6 +84,40 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Registration error:', error);
+
+    const demoUser = registerDemoUser({
+      email,
+      password,
+      firstName,
+      lastName,
+      role,
+      userType,
+    });
+
+    if (!demoUser) {
+      return NextResponse.json(
+        { error: 'User already exists' },
+        { status: 409 }
+      );
+    }
+
+    const token = generateToken(demoUser.id, demoUser.role);
+    await setAuthCookie(token);
+
+    return NextResponse.json(
+      {
+        message: 'User registered successfully (demo mode)',
+        user: {
+          id: demoUser.id,
+          email: demoUser.email,
+          firstName: demoUser.firstName,
+          lastName: demoUser.lastName,
+          role: demoUser.role,
+        },
+      },
+      { status: 201 }
+    );
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

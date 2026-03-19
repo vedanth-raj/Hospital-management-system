@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { query } from '@/lib/db';
+import { getDemoAuthProfile } from '@/lib/demo-store';
 
 export async function GET(request: NextRequest) {
   try {
@@ -69,6 +70,14 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error('Profile fetch error:', error);
+
+    const user = await getCurrentUser();
+    if (user) {
+      const demoProfile = getDemoAuthProfile(user.userId);
+      if (demoProfile) {
+        return NextResponse.json(demoProfile, { status: 200 });
+      }
+    }
 
     if (error instanceof Error) {
       const isDbConfigError = error.message.includes('Database pool not initialized');

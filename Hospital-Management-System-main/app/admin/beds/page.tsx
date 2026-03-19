@@ -26,25 +26,40 @@ export default function BedsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchBeds = async () => {
-      try {
-        const res = await fetch('/api/admin/beds', { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          setBeds(data.beds);
-        }
-      } catch (error) {
-        console.error('Error fetching beds:', error);
-      } finally {
-        setIsLoading(false);
+  const fetchBeds = async () => {
+    try {
+      const res = await fetch('/api/admin/beds', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setBeds(data.beds);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching beds:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchBeds();
     const interval = setInterval(fetchBeds, 20000);
     return () => clearInterval(interval);
   }, []);
+
+  const toggleBedAllocation = async (bed: Bed) => {
+    const payload = bed.isAvailable
+      ? { bedId: bed.id, allocatedToPatientId: 1, isAvailable: false }
+      : { bedId: bed.id, allocatedToPatientId: null, isAvailable: true };
+
+    await fetch('/api/admin/beds', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+
+    fetchBeds();
+  };
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
@@ -152,7 +167,12 @@ export default function BedsPage() {
                       </div>
                     )}
 
-                    <Button variant="outline" size="sm" className="w-full mt-3 border-secondary/30">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-3 border-secondary/30"
+                      onClick={() => toggleBedAllocation(bed)}
+                    >
                       {bed.isAvailable ? 'Allocate' : 'Release'}
                     </Button>
                   </div>

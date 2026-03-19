@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { query } from '@/lib/db';
+import { getDoctorQueue, updateDoctorQueue } from '@/lib/demo-store';
 
 export async function GET(request: NextRequest) {
-  try {
-    const user = await getCurrentUser();
-    if (!user || user.role !== 'doctor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'doctor') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
+  try {
     // Get doctor ID
     const doctorResult = await query('SELECT id FROM doctors WHERE user_id = $1', [user.userId]);
     if (doctorResult.rows.length === 0) {
@@ -41,19 +42,19 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching doctor queue:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ queue: getDoctorQueue(user.userId) }, { status: 200 });
   }
 }
 
 export async function PATCH(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'doctor') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { queueId, status } = await request.json();
+
   try {
-    const user = await getCurrentUser();
-    if (!user || user.role !== 'doctor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { queueId, status } = await request.json();
-
     // Update queue status
     await query('UPDATE queues SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [
       status,
@@ -63,6 +64,10 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ message: 'Queue status updated' });
   } catch (error) {
     console.error('Error updating queue:', error);
+    const updated = updateDoctorQueue(Number(queueId), status);
+    if (updated) {
+      return NextResponse.json({ message: 'Queue status updated' });
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

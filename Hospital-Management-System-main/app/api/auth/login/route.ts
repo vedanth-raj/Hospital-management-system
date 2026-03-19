@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { comparePassword, setAuthCookie, generateToken } from '@/lib/auth';
+import { validateDemoCredentials } from '@/lib/demo-store';
 
 export async function POST(request: NextRequest) {
+  const { email, password } = await request.json();
+
+  if (!email || !password) {
+    return NextResponse.json(
+      { error: 'Email and password are required' },
+      { status: 400 }
+    );
+  }
+
   try {
-    const { email, password } = await request.json();
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Email and password are required' },
-        { status: 400 }
-      );
-    }
-
-    // Find user
     const userResult = await query(
       'SELECT id, email, password_hash, first_name, last_name, role FROM users WHERE email = $1 AND is_active = true',
       [email]
@@ -27,8 +27,6 @@ export async function POST(request: NextRequest) {
     }
 
     const user = userResult.rows[0];
-
-    // Compare password
     const isPasswordValid = await comparePassword(password, user.password_hash);
     if (!isPasswordValid) {
       return NextResponse.json(
@@ -37,7 +35,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate token
     const token = generateToken(user.id, user.role);
     await setAuthCookie(token);
 
@@ -56,6 +53,26 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Login error:', error);
+
+    const demoUser = validateDemoCredentials(email, password);
+    if (demoUser) {
+      const token = generateToken(demoUser.id, demoUser.role);
+      await setAuthCookie(token);
+
+      return NextResponse.json(
+        {
+          message: 'Login successful (demo mode)',
+          user: {
+            id: demoUser.id,
+            email: demoUser.email,
+            firstName: demoUser.firstName,
+            lastName: demoUser.lastName,
+            role: demoUser.role,
+          },
+        },
+        { status: 200 }
+      );
+    }
 
     if (error instanceof Error) {
       const isDbConfigError = error.message.includes('Database pool not initialized');
