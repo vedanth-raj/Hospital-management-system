@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Heart, LogOut, Users, Clock, AlertTriangle, CheckCircle, TrendingUp } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { AddPatientForm } from '@/components/reception/add-patient-form';
 
 interface QueueStats {
   totalPatients: number;
@@ -75,10 +76,13 @@ export default function ReceptionDashboard() {
             <Heart className="w-6 h-6 text-primary" />
             <h1 className="text-xl font-bold text-primary">HealthHub - Reception</h1>
           </div>
-          <Button variant="outline" size="sm" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-3">
+            <AddPatientForm />
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 
