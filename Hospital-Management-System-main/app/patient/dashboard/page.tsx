@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Heart, Calendar, Clock, AlertCircle, LogOut } from 'lucide-react';
+import { Heart, Calendar, Clock, AlertCircle, LogOut, AlertTriangle } from 'lucide-react';
 
 interface QueueStatus {
   queuePosition: number | null;
@@ -186,6 +186,13 @@ export default function PatientDashboard() {
               >
                 <Clock className="w-4 h-4 mr-2" />
                 Visit History
+              </Button>
+              <Button
+                className="w-full justify-start bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                onClick={() => router.push('/patient/emergency')}
+              >
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                Smart Emergency
               </Button>
             </CardContent>
           </Card>

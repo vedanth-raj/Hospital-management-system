@@ -134,6 +134,10 @@ export default function AdminDashboard() {
                 <AlertTriangle className="mr-2 h-4 w-4" />
                 Emergency Desk
               </Button>
+              <Button variant="outline" onClick={() => router.push('/admin/emergency-response')}>
+                <Activity className="mr-2 h-4 w-4" />
+                Smart ER Engine
+              </Button>
               <Button variant="secondary" onClick={() => router.push('/reception/queue')}>
                 <Users className="mr-2 h-4 w-4" />
                 Live Queue
@@ -279,7 +283,7 @@ export default function AdminDashboard() {
                 <CardDescription>Jump directly into critical operational workflows</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                   <ActionTile
                     title="Manage Beds"
                     description="Allocate, release, and monitor ward capacity."
@@ -291,6 +295,12 @@ export default function AdminDashboard() {
                     description="Prioritize high-risk cases and team assignment."
                     icon={AlertTriangle}
                     onClick={() => router.push('/admin/emergency')}
+                  />
+                  <ActionTile
+                    title="Smart ER Engine"
+                    description="Track ambulance, ETA, and pre-arrival hospital readiness."
+                    icon={Activity}
+                    onClick={() => router.push('/admin/emergency-response')}
                   />
                   <ActionTile
                     title="Performance Analytics"

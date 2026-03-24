@@ -86,6 +86,11 @@ export default function Home() {
               Start Free Trial
             </Button>
           </Link>
+          <Link href="/emergency">
+            <Button size="lg" variant="destructive">
+              Emergency Without Login
+            </Button>
+          </Link>
           <Button size="lg" variant="outline">
             Watch Demo
           </Button>
