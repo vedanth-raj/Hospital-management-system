@@ -123,6 +123,32 @@ CREATE TABLE IF NOT EXISTS beds (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Bed allocation history table (tracks all admissions/discharges)
+CREATE TABLE IF NOT EXISTS bed_allocations (
+  id SERIAL PRIMARY KEY,
+  bed_id INTEGER NOT NULL REFERENCES beds(id) ON DELETE CASCADE,
+  patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+  allocated_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  admission_reason TEXT,
+  admission_diagnosis TEXT,
+  admitting_doctor_name VARCHAR(150),
+  expected_stay_days INTEGER,
+  insurance_provider VARCHAR(120),
+  insurance_policy_number VARCHAR(120),
+  emergency_contact_name VARCHAR(120),
+  emergency_contact_phone VARCHAR(30),
+  clinical_notes TEXT,
+  requires_ventilator BOOLEAN DEFAULT false,
+  requires_isolation BOOLEAN DEFAULT false,
+  diet_type VARCHAR(60),
+  allergies_confirmed BOOLEAN DEFAULT false,
+  status VARCHAR(30) DEFAULT 'active' CHECK (status IN ('active', 'released')),
+  allocated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  released_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Emergency requests table
 CREATE TABLE IF NOT EXISTS emergency_requests (
   id SERIAL PRIMARY KEY,
@@ -207,6 +233,8 @@ CREATE INDEX IF NOT EXISTS idx_queues_doctor_id ON queues(doctor_id);
 CREATE INDEX IF NOT EXISTS idx_queues_patient_id ON queues(patient_id);
 CREATE INDEX IF NOT EXISTS idx_queues_status ON queues(status);
 CREATE INDEX IF NOT EXISTS idx_beds_availability ON beds(is_available);
+CREATE INDEX IF NOT EXISTS idx_bed_allocations_patient_id ON bed_allocations(patient_id);
+CREATE INDEX IF NOT EXISTS idx_bed_allocations_status ON bed_allocations(status);
 CREATE INDEX IF NOT EXISTS idx_emergency_requests_status ON emergency_requests(status);
 CREATE INDEX IF NOT EXISTS idx_emergency_requests_patient_id ON emergency_requests(patient_id);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id);

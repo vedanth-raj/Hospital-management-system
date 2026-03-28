@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -112,6 +112,22 @@ export default function DoctorQueuePage() {
     return allergies && allergies !== 'None documented' && allergies.toLowerCase() !== 'none';
   };
 
+  const triageLoad = useMemo(() => {
+    const emergencyCount = queue.filter((p) => p.priority === 'emergency').length;
+    const highCount = queue.filter((p) => p.priority === 'high').length;
+    const score = emergencyCount * 3 + highCount * 2 + queue.length;
+    if (score > 16) return 'Critical';
+    if (score > 9) return 'Elevated';
+    return 'Stable';
+  }, [queue]);
+
+  const riskFlags = useMemo(() => {
+    return queue.filter((patient) => {
+      const details = patientDetails[patient.id];
+      return details?.allergies && hasAllergyConflict(details.allergies);
+    }).length;
+  }, [queue, patientDetails]);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -134,7 +150,7 @@ export default function DoctorQueuePage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Stats */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
           <Card className="border-secondary/20">
             <CardContent className="pt-6">
               <div>
@@ -177,6 +193,46 @@ export default function DoctorQueuePage() {
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Average for next</p>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 mb-8">
+          <Card className="border-secondary/20 lg:col-span-2 bg-gradient-to-br from-secondary/5 to-primary/5">
+            <CardHeader>
+              <CardTitle className="text-lg">Clinical Focus Panel</CardTitle>
+              <CardDescription>Quick decisions for safer and faster consultations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+                  <p className="text-xs uppercase text-muted-foreground">Triage Load</p>
+                  <p className="text-xl font-bold text-destructive mt-1">{triageLoad}</p>
+                </div>
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                  <p className="text-xs uppercase text-muted-foreground">Risk Flags</p>
+                  <p className="text-xl font-bold text-amber-700 mt-1">{riskFlags}</p>
+                </div>
+                <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3">
+                  <p className="text-xs uppercase text-muted-foreground">Consulting Now</p>
+                  <p className="text-xl font-bold text-blue-700 mt-1">
+                    {queue.filter((p) => p.status === 'in-consultation').length}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-secondary/20">
+            <CardHeader>
+              <CardTitle className="text-lg">Safety Checklist</CardTitle>
+              <CardDescription>Use before prescribing or discharging</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div className="rounded-md border border-secondary/20 bg-secondary/5 p-2">Confirm allergy history</div>
+              <div className="rounded-md border border-secondary/20 bg-secondary/5 p-2">Verify chronic conditions</div>
+              <div className="rounded-md border border-secondary/20 bg-secondary/5 p-2">Check latest vitals and notes</div>
+              <div className="rounded-md border border-secondary/20 bg-secondary/5 p-2">Set follow-up or discharge plan</div>
             </CardContent>
           </Card>
         </div>

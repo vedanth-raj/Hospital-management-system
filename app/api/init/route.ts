@@ -70,11 +70,47 @@ export async function GET(request: NextRequest) {
           CREATE TABLE IF NOT EXISTS beds (
             id SERIAL PRIMARY KEY,
             bed_number VARCHAR(20) UNIQUE NOT NULL,
-            ward_type VARCHAR(50),
+            ward VARCHAR(100),
+            bed_type VARCHAR(50),
             floor_number INTEGER,
             is_available BOOLEAN DEFAULT true,
-            patient_id INTEGER REFERENCES patients(id),
+            allocated_to_patient_id INTEGER REFERENCES patients(id),
+            allocated_at TIMESTAMP,
+            notes TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+
+        await query('ALTER TABLE beds ADD COLUMN IF NOT EXISTS ward VARCHAR(100)');
+        await query('ALTER TABLE beds ADD COLUMN IF NOT EXISTS bed_type VARCHAR(50)');
+        await query('ALTER TABLE beds ADD COLUMN IF NOT EXISTS allocated_to_patient_id INTEGER REFERENCES patients(id)');
+        await query('ALTER TABLE beds ADD COLUMN IF NOT EXISTS allocated_at TIMESTAMP');
+        await query('ALTER TABLE beds ADD COLUMN IF NOT EXISTS notes TEXT');
+
+        await query(`
+          CREATE TABLE IF NOT EXISTS bed_allocations (
+            id SERIAL PRIMARY KEY,
+            bed_id INTEGER NOT NULL REFERENCES beds(id) ON DELETE CASCADE,
+            patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+            allocated_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            admission_reason TEXT,
+            admission_diagnosis TEXT,
+            admitting_doctor_name VARCHAR(150),
+            expected_stay_days INTEGER,
+            insurance_provider VARCHAR(120),
+            insurance_policy_number VARCHAR(120),
+            emergency_contact_name VARCHAR(120),
+            emergency_contact_phone VARCHAR(30),
+            clinical_notes TEXT,
+            requires_ventilator BOOLEAN DEFAULT false,
+            requires_isolation BOOLEAN DEFAULT false,
+            diet_type VARCHAR(60),
+            allergies_confirmed BOOLEAN DEFAULT false,
+            status VARCHAR(30) DEFAULT 'active',
+            allocated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            released_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `);
 

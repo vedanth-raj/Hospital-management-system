@@ -27,6 +27,28 @@ interface PatientProfile {
   city: string;
   state: string;
   zipCode: string;
+  currentBed?: {
+    bedNumber: string;
+    ward: string;
+    bedType: string;
+    allocatedAt: string;
+    admissionReason?: string;
+    diagnosis?: string;
+    admittingDoctorName?: string;
+    expectedStayDays?: number;
+    dietType?: string;
+  } | null;
+  bedHistory?: Array<{
+    id: number;
+    bedNumber: string;
+    ward: string;
+    bedType: string;
+    admissionReason?: string;
+    diagnosis?: string;
+    status: string;
+    allocatedAt: string;
+    releasedAt?: string | null;
+  }>;
 }
 
 export default function ProfilePage() {
@@ -218,6 +240,59 @@ export default function ProfilePage() {
                   Medical history can be updated by reception/clinical staff and is visible here as read-only.
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-secondary/20">
+            <CardHeader>
+              <CardTitle>Bed Allocation Status</CardTitle>
+              <CardDescription>
+                Current admission bed details and recent bed history entries.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {profile.currentBed ? (
+                <div className="rounded-lg border border-secondary/20 bg-secondary/5 p-4 space-y-1">
+                  <p className="text-xs text-muted-foreground uppercase">Currently Admitted</p>
+                  <p className="text-lg font-semibold text-foreground">
+                    Bed {profile.currentBed.bedNumber} ({profile.currentBed.ward} / {profile.currentBed.bedType})
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Allocated on {new Date(profile.currentBed.allocatedAt).toLocaleString()}
+                  </p>
+                  {profile.currentBed.admissionReason && (
+                    <p className="text-sm">Reason: {profile.currentBed.admissionReason}</p>
+                  )}
+                  {profile.currentBed.diagnosis && (
+                    <p className="text-sm">Diagnosis: {profile.currentBed.diagnosis}</p>
+                  )}
+                  {profile.currentBed.admittingDoctorName && (
+                    <p className="text-sm">Admitting Doctor: {profile.currentBed.admittingDoctorName}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4 text-sm text-green-800">
+                  No active bed allocation at the moment.
+                </div>
+              )}
+
+              {profile.bedHistory && profile.bedHistory.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Recent Bed History</p>
+                  {profile.bedHistory.slice(0, 3).map((entry) => (
+                    <div key={entry.id} className="rounded-md border border-secondary/20 p-3 text-sm">
+                      <p className="font-semibold text-foreground">
+                        Bed {entry.bedNumber} ({entry.ward} / {entry.bedType})
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        {new Date(entry.allocatedAt).toLocaleString()}
+                        {entry.releasedAt ? ` -> ${new Date(entry.releasedAt).toLocaleString()}` : ' (Active)'}
+                      </p>
+                      {entry.admissionReason && <p className="mt-1">Reason: {entry.admissionReason}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 

@@ -130,6 +130,10 @@ export default function AdminDashboard() {
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Analytics
               </Button>
+              <Button variant="outline" onClick={() => router.push('/admin/patient-data')}>
+                <Users className="mr-2 h-4 w-4" />
+                Patient Data
+              </Button>
               <Button variant="outline" onClick={() => router.push('/admin/emergency')}>
                 <AlertTriangle className="mr-2 h-4 w-4" />
                 Emergency Desk
@@ -174,6 +178,7 @@ export default function AdminDashboard() {
                 helper="Outpatient and inpatient interactions"
                 tone="primary"
                 icon={Activity}
+                onClick={() => router.push('/admin/analytics?focus=throughput')}
               />
               <MetricCard
                 label="Appointments"
@@ -181,6 +186,7 @@ export default function AdminDashboard() {
                 helper="Scheduled for the current day"
                 tone="secondary"
                 icon={Calendar}
+                onClick={() => router.push('/admin/analytics?focus=intake')}
               />
               <MetricCard
                 label="Emergency Cases"
@@ -188,6 +194,7 @@ export default function AdminDashboard() {
                 helper="Requires active triage handling"
                 tone="critical"
                 icon={AlertTriangle}
+                onClick={() => router.push('/admin/emergency')}
               />
               <MetricCard
                 label="Beds Available"
@@ -195,6 +202,7 @@ export default function AdminDashboard() {
                 helper="Capacity snapshot across all wards"
                 tone="info"
                 icon={Bed}
+                onClick={() => router.push('/admin/beds')}
               />
             </div>
 
@@ -276,6 +284,69 @@ export default function AdminDashboard() {
               </Card>
             </div>
 
+            <div className="mb-8 grid gap-4 lg:grid-cols-2">
+              <Card className="border-border/70 bg-card/80">
+                <CardHeader>
+                  <CardTitle>Executive Action Center</CardTitle>
+                  <CardDescription>Role-specific actions for administrators and operations leads</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-3 sm:grid-cols-2">
+                  <Button variant="outline" className="justify-start" onClick={() => router.push('/admin/doctors')}>
+                    <Stethoscope className="mr-2 h-4 w-4" />
+                    Rebalance Doctor Allocation
+                  </Button>
+                  <Button variant="outline" className="justify-start" onClick={() => router.push('/admin/beds')}>
+                    <Bed className="mr-2 h-4 w-4" />
+                    Reserve Surge Beds
+                  </Button>
+                  <Button variant="outline" className="justify-start" onClick={() => router.push('/admin/emergency')}>
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                    Escalate Emergency Protocol
+                  </Button>
+                  <Button variant="outline" className="justify-start" onClick={() => router.push('/admin/analytics')}>
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Review Throughput Trends
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/70 bg-card/80">
+                <CardHeader>
+                  <CardTitle>Service-Level Monitor</CardTitle>
+                  <CardDescription>At-a-glance service quality and operational target health</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <div className="mb-2 flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Emergency response target</span>
+                      <span className="font-semibold text-foreground">{Math.max(70, 98 - stats.emergencyCasesToday * 3)}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted">
+                      <div className="h-2 rounded-full bg-destructive" style={{ width: `${Math.max(70, 98 - stats.emergencyCasesToday * 3)}%` }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-2 flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Patient wait-time target</span>
+                      <span className="font-semibold text-foreground">{Math.max(68, 100 - stats.patientsInQueue * 2)}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted">
+                      <div className="h-2 rounded-full bg-secondary" style={{ width: `${Math.max(68, 100 - stats.patientsInQueue * 2)}%` }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-2 flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Clinical capacity utilization</span>
+                      <span className="font-semibold text-foreground">{bedOccupancy}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted">
+                      <div className="h-2 rounded-full bg-primary" style={{ width: `${bedOccupancy}%` }} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Quick Actions */}
             <Card className="border-border/70 bg-background/70 backdrop-blur-sm">
               <CardHeader>
@@ -283,7 +354,7 @@ export default function AdminDashboard() {
                 <CardDescription>Jump directly into critical operational workflows</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
                   <ActionTile
                     title="Manage Beds"
                     description="Allocate, release, and monitor ward capacity."
@@ -313,6 +384,12 @@ export default function AdminDashboard() {
                     description="View doctors and active workload distribution."
                     icon={Stethoscope}
                     onClick={() => router.push('/admin/doctors')}
+                  />
+                  <ActionTile
+                    title="Patient Data"
+                    description="Open protected patient consultation table."
+                    icon={Users}
+                    onClick={() => router.push('/admin/patient-data')}
                   />
                 </div>
               </CardContent>

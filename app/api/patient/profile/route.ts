@@ -3,6 +3,35 @@ import { getCurrentUser } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { getPatientProfile, updatePatientProfile } from '@/lib/demo-store';
 
+async function ensureBedAllocationTable() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS bed_allocations (
+      id SERIAL PRIMARY KEY,
+      bed_id INTEGER NOT NULL REFERENCES beds(id) ON DELETE CASCADE,
+      patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+      allocated_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      admission_reason TEXT,
+      admission_diagnosis TEXT,
+      admitting_doctor_name VARCHAR(150),
+      expected_stay_days INTEGER,
+      insurance_provider VARCHAR(120),
+      insurance_policy_number VARCHAR(120),
+      emergency_contact_name VARCHAR(120),
+      emergency_contact_phone VARCHAR(30),
+      clinical_notes TEXT,
+      requires_ventilator BOOLEAN DEFAULT false,
+      requires_isolation BOOLEAN DEFAULT false,
+      diet_type VARCHAR(60),
+      allergies_confirmed BOOLEAN DEFAULT false,
+      status VARCHAR(30) DEFAULT 'active' CHECK (status IN ('active', 'released')),
+      allocated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      released_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+}
+
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user || user.role !== 'patient') {
@@ -10,6 +39,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    await ensureBedAllocationTable();
+
     // Get patient details
     const patientResult = await query(
       `SELECT p.*, u.email, u.phone, u.first_name, u.last_name
@@ -24,6 +55,33 @@ export async function GET(request: NextRequest) {
     }
 
     const patient = patientResult.rows[0];
+
+    const currentBedResult = await query(
+      `SELECT b.bed_number, b.ward, b.bed_type,
+              ba.allocated_at, ba.admission_reason, ba.admission_diagnosis,
+              ba.admitting_doctor_name, ba.expected_stay_days, ba.diet_type
+       FROM bed_allocations ba
+       JOIN beds b ON b.id = ba.bed_id
+       WHERE ba.patient_id = $1 AND ba.status = 'active'
+       ORDER BY ba.allocated_at DESC
+       LIMIT 1`,
+      [patient.id],
+    );
+
+    const bedHistoryResult = await query(
+      `SELECT ba.id, b.bed_number, b.ward, b.bed_type,
+              ba.admission_reason, ba.admission_diagnosis,
+              ba.admitting_doctor_name, ba.expected_stay_days,
+              ba.status, ba.allocated_at, ba.released_at
+       FROM bed_allocations ba
+       JOIN beds b ON b.id = ba.bed_id
+       WHERE ba.patient_id = $1
+       ORDER BY ba.allocated_at DESC
+       LIMIT 10`,
+      [patient.id],
+    );
+
+    const activeBed = currentBedResult.rows[0];
 
     return NextResponse.json({
       patientId: patient.patient_id_unique,
@@ -43,6 +101,32 @@ export async function GET(request: NextRequest) {
       city: patient.city,
       state: patient.state,
       zipCode: patient.zip_code,
+      currentBed: activeBed
+        ? {
+            bedNumber: activeBed.bed_number,
+            ward: activeBed.ward,
+            bedType: activeBed.bed_type,
+            allocatedAt: activeBed.allocated_at,
+            admissionReason: activeBed.admission_reason,
+            diagnosis: activeBed.admission_diagnosis,
+            admittingDoctorName: activeBed.admitting_doctor_name,
+            expectedStayDays: activeBed.expected_stay_days,
+            dietType: activeBed.diet_type,
+          }
+        : null,
+      bedHistory: bedHistoryResult.rows.map((item) => ({
+        id: item.id,
+        bedNumber: item.bed_number,
+        ward: item.ward,
+        bedType: item.bed_type,
+        admissionReason: item.admission_reason,
+        diagnosis: item.admission_diagnosis,
+        admittingDoctorName: item.admitting_doctor_name,
+        expectedStayDays: item.expected_stay_days,
+        status: item.status,
+        allocatedAt: item.allocated_at,
+        releasedAt: item.released_at,
+      })),
     });
   } catch (error) {
     console.error('Error fetching patient profile:', error);

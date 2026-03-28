@@ -7,6 +7,7 @@ interface MetricCardProps {
   helper: string;
   tone: 'primary' | 'secondary' | 'critical' | 'info';
   icon: LucideIcon;
+  onClick?: () => void;
 }
 
 const toneClasses: Record<MetricCardProps['tone'], string> = {
@@ -16,9 +17,25 @@ const toneClasses: Record<MetricCardProps['tone'], string> = {
   info: 'from-sky-500/20 via-sky-500/5 to-transparent text-sky-600',
 };
 
-export function MetricCard({ label, value, helper, icon: Icon, tone }: MetricCardProps) {
+export function MetricCard({ label, value, helper, icon: Icon, tone, onClick }: MetricCardProps) {
+  const interactiveClasses = onClick
+    ? 'hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 hover:scale-105 cursor-pointer'
+    : '';
+
   return (
-    <Card className="group relative overflow-hidden border-border/70 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 hover:scale-105 cursor-pointer">
+    <Card
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (!onClick) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      className={`group relative overflow-hidden border-border/70 bg-card/80 backdrop-blur-sm transition-all duration-300 ${interactiveClasses}`}
+    >
       <div
         className={`pointer-events-none absolute inset-0 bg-gradient-to-br opacity-80 group-hover:opacity-100 transition-opacity duration-300 ${toneClasses[tone]}`}
       />

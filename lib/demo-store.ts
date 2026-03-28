@@ -70,6 +70,45 @@ type DemoBed = {
   allocatedAt: string | null;
 };
 
+type DemoBedAllocation = {
+  id: number;
+  bedId: number;
+  patientId: number;
+  allocatedByUserId: number | null;
+  admissionReason: string;
+  admissionDiagnosis: string;
+  admittingDoctorName: string;
+  expectedStayDays: number | null;
+  insuranceProvider: string;
+  insurancePolicyNumber: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  clinicalNotes: string;
+  requiresVentilator: boolean;
+  requiresIsolation: boolean;
+  dietType: string;
+  allergiesConfirmed: boolean;
+  status: 'active' | 'released';
+  allocatedAt: string;
+  releasedAt: string | null;
+};
+
+type BedAllocationInput = {
+  admissionReason?: string;
+  admissionDiagnosis?: string;
+  admittingDoctorName?: string;
+  expectedStayDays?: number;
+  insuranceProvider?: string;
+  insurancePolicyNumber?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  clinicalNotes?: string;
+  requiresVentilator?: boolean;
+  requiresIsolation?: boolean;
+  dietType?: string;
+  allergiesConfirmed?: boolean;
+};
+
 type DemoEmergency = {
   id: number;
   patientId: number;
@@ -77,7 +116,19 @@ type DemoEmergency = {
   description: string;
   status: 'pending' | 'in-progress' | 'resolved';
   assignedDoctorId: number | null;
+  assignmentAuditTrail: DemoEmergencyAssignmentAuditEvent[];
   createdAt: string;
+};
+
+type DemoEmergencyAssignmentAuditEvent = {
+  time: string;
+  actorUserId: number;
+  actorLabel: string;
+  previousDoctorId: number | null;
+  previousDoctorName: string;
+  newDoctorId: number | null;
+  newDoctorName: string;
+  note: string;
 };
 
 type EmergencyType =
@@ -168,6 +219,7 @@ type DemoStore = {
   queues: DemoQueue[];
   appointments: DemoAppointment[];
   beds: DemoBed[];
+  bedAllocations: DemoBedAllocation[];
   emergencies: DemoEmergency[];
   ambulances: DemoAmbulance[];
   hospitals: DemoHospitalNode[];
@@ -178,6 +230,7 @@ type DemoStore = {
     patientId: number;
     queueId: number;
     appointmentId: number;
+    bedAllocationId: number;
     emergencyId: number;
     ambulanceId: number;
     hospitalId: number;
@@ -319,6 +372,30 @@ function seedStore(): DemoStore {
         allocatedAt: null,
       },
     ],
+    bedAllocations: [
+      {
+        id: 1,
+        bedId: 2,
+        patientId: 1,
+        allocatedByUserId: 1,
+        admissionReason: 'Post observation monitoring',
+        admissionDiagnosis: 'Chest pain with mild respiratory distress',
+        admittingDoctorName: 'Dr. Sarah Wilson',
+        expectedStayDays: 2,
+        insuranceProvider: 'HealthSecure',
+        insurancePolicyNumber: 'HS-001-7782',
+        emergencyContactName: 'Jane Doe',
+        emergencyContactPhone: '9000009000',
+        clinicalNotes: 'Monitor vitals every 4 hours.',
+        requiresVentilator: false,
+        requiresIsolation: false,
+        dietType: 'cardiac',
+        allergiesConfirmed: true,
+        status: 'active',
+        allocatedAt: now,
+        releasedAt: null,
+      },
+    ],
     emergencies: [
       {
         id: 1,
@@ -327,6 +404,7 @@ function seedStore(): DemoStore {
         description: 'Chest pain and breathlessness',
         status: 'in-progress',
         assignedDoctorId: 1,
+        assignmentAuditTrail: [],
         createdAt: now,
       },
     ],
@@ -404,6 +482,7 @@ function seedStore(): DemoStore {
       patientId: 2,
       queueId: 2,
       appointmentId: 2,
+      bedAllocationId: 2,
       emergencyId: 2,
       ambulanceId: 4,
       hospitalId: 4,
@@ -695,6 +774,31 @@ export function getPatientProfile(userId: number) {
   const user = store.users.find((u) => u.id === userId);
   if (!patient || !user) return null;
 
+  const activeAllocation = store.bedAllocations
+    .filter((allocation) => allocation.patientId === patient.id && allocation.status === 'active')
+    .sort((a, b) => (a.allocatedAt > b.allocatedAt ? -1 : 1))[0];
+
+  const activeBed = activeAllocation ? store.beds.find((bed) => bed.id === activeAllocation.bedId) : null;
+
+  const bedHistory = store.bedAllocations
+    .filter((allocation) => allocation.patientId === patient.id)
+    .sort((a, b) => (a.allocatedAt > b.allocatedAt ? -1 : 1))
+    .slice(0, 10)
+    .map((allocation) => {
+      const bed = store.beds.find((item) => item.id === allocation.bedId);
+      return {
+        id: allocation.id,
+        bedNumber: bed?.bedNumber || 'NA',
+        ward: bed?.ward || 'Unknown',
+        bedType: bed?.bedType || 'general',
+        admissionReason: allocation.admissionReason,
+        diagnosis: allocation.admissionDiagnosis,
+        allocatedAt: allocation.allocatedAt,
+        releasedAt: allocation.releasedAt,
+        status: allocation.status,
+      };
+    });
+
   return {
     patientId: patient.patientId,
     firstName: user.firstName,
@@ -712,7 +816,26 @@ export function getPatientProfile(userId: number) {
     city: patient.city || '',
     state: patient.state || '',
     zipCode: patient.zipCode || '',
+    currentBed: activeAllocation && activeBed
+      ? {
+          bedNumber: activeBed.bedNumber,
+          ward: activeBed.ward,
+          bedType: activeBed.bedType,
+          allocatedAt: activeAllocation.allocatedAt,
+          admissionReason: activeAllocation.admissionReason,
+          diagnosis: activeAllocation.admissionDiagnosis,
+          admittingDoctorName: activeAllocation.admittingDoctorName,
+          expectedStayDays: activeAllocation.expectedStayDays,
+          dietType: activeAllocation.dietType,
+        }
+      : null,
+    bedHistory,
   };
+}
+
+function appendMedicalHistory(patient: DemoPatient, line: string) {
+  const prefix = patient.medicalHistory ? `${patient.medicalHistory}\n` : '';
+  patient.medicalHistory = `${prefix}[${new Date().toISOString()}] ${line}`;
 }
 
 export function updatePatientProfile(userId: number, data: any) {
@@ -931,6 +1054,9 @@ export function getBeds() {
       ? store.patients.find((p) => p.id === bed.allocatedToPatientId)
       : null;
     const user = patient ? store.users.find((u) => u.id === patient.userId) : null;
+    const activeAllocation = store.bedAllocations
+      .filter((allocation) => allocation.bedId === bed.id && allocation.status === 'active')
+      .sort((a, b) => (a.allocatedAt > b.allocatedAt ? -1 : 1))[0];
     return {
       id: bed.id,
       bedNumber: bed.bedNumber,
@@ -941,19 +1067,123 @@ export function getBeds() {
       allocatedPatient: patient && user
         ? { id: patient.id, name: `${user.firstName} ${user.lastName}`, patientId: patient.patientId }
         : null,
+      allocationDetails: activeAllocation
+        ? {
+            id: activeAllocation.id,
+            admissionReason: activeAllocation.admissionReason,
+            admissionDiagnosis: activeAllocation.admissionDiagnosis,
+            admittingDoctorName: activeAllocation.admittingDoctorName,
+            expectedStayDays: activeAllocation.expectedStayDays,
+            insuranceProvider: activeAllocation.insuranceProvider,
+            insurancePolicyNumber: activeAllocation.insurancePolicyNumber,
+            emergencyContactName: activeAllocation.emergencyContactName,
+            emergencyContactPhone: activeAllocation.emergencyContactPhone,
+            clinicalNotes: activeAllocation.clinicalNotes,
+            requiresVentilator: activeAllocation.requiresVentilator,
+            requiresIsolation: activeAllocation.requiresIsolation,
+            dietType: activeAllocation.dietType,
+            allergiesConfirmed: activeAllocation.allergiesConfirmed,
+            allocatedAt: activeAllocation.allocatedAt,
+          }
+        : null,
       allocatedAt: bed.allocatedAt,
     };
   });
 }
 
-export function updateBedAllocation(bedId: number, allocatedToPatientId: number | null, isAvailable: boolean) {
+export function updateBedAllocation(
+  bedId: number,
+  allocatedToPatientId: number | null,
+  isAvailable: boolean,
+  details?: BedAllocationInput,
+) {
   const store = getStore();
   const bed = store.beds.find((b) => b.id === bedId);
   if (!bed) return false;
-  bed.allocatedToPatientId = allocatedToPatientId;
-  bed.isAvailable = isAvailable;
-  bed.allocatedAt = allocatedToPatientId ? new Date().toISOString() : null;
+
+  if (!isAvailable && allocatedToPatientId) {
+    bed.allocatedToPatientId = allocatedToPatientId;
+    bed.isAvailable = false;
+    bed.allocatedAt = new Date().toISOString();
+
+    const allocation: DemoBedAllocation = {
+      id: store.counters.bedAllocationId++,
+      bedId,
+      patientId: allocatedToPatientId,
+      allocatedByUserId: 1,
+      admissionReason: details?.admissionReason || 'Admission',
+      admissionDiagnosis: details?.admissionDiagnosis || '',
+      admittingDoctorName: details?.admittingDoctorName || 'Assigned doctor',
+      expectedStayDays: typeof details?.expectedStayDays === 'number' ? details.expectedStayDays : null,
+      insuranceProvider: details?.insuranceProvider || '',
+      insurancePolicyNumber: details?.insurancePolicyNumber || '',
+      emergencyContactName: details?.emergencyContactName || '',
+      emergencyContactPhone: details?.emergencyContactPhone || '',
+      clinicalNotes: details?.clinicalNotes || '',
+      requiresVentilator: Boolean(details?.requiresVentilator),
+      requiresIsolation: Boolean(details?.requiresIsolation),
+      dietType: details?.dietType || 'regular',
+      allergiesConfirmed: Boolean(details?.allergiesConfirmed),
+      status: 'active',
+      allocatedAt: bed.allocatedAt,
+      releasedAt: null,
+    };
+
+    store.bedAllocations.push(allocation);
+    const patient = store.patients.find((p) => p.id === allocatedToPatientId);
+    if (patient) {
+      appendMedicalHistory(patient, `Bed allocated: ${bed.bedNumber} (${bed.ward}/${bed.bedType}). Reason: ${allocation.admissionReason}`);
+    }
+  } else {
+    const existingPatientId = bed.allocatedToPatientId;
+    bed.allocatedToPatientId = null;
+    bed.isAvailable = true;
+    bed.allocatedAt = null;
+
+    const activeAllocation = store.bedAllocations
+      .filter((allocation) => allocation.bedId === bedId && allocation.status === 'active')
+      .sort((a, b) => (a.allocatedAt > b.allocatedAt ? -1 : 1))[0];
+
+    if (activeAllocation) {
+      activeAllocation.status = 'released';
+      activeAllocation.releasedAt = new Date().toISOString();
+    }
+
+    if (existingPatientId) {
+      const patient = store.patients.find((p) => p.id === existingPatientId);
+      if (patient) {
+        appendMedicalHistory(patient, `Bed released: ${bed.bedNumber} (${bed.ward}/${bed.bedType}).`);
+      }
+    }
+  }
+
   return true;
+}
+
+export function getPatientBedHistory(userId: number) {
+  const store = getStore();
+  const patient = store.patients.find((p) => p.userId === userId);
+  if (!patient) return [];
+
+  return store.bedAllocations
+    .filter((allocation) => allocation.patientId === patient.id)
+    .sort((a, b) => (a.allocatedAt > b.allocatedAt ? -1 : 1))
+    .map((allocation) => {
+      const bed = store.beds.find((item) => item.id === allocation.bedId);
+      return {
+        id: allocation.id,
+        bedNumber: bed?.bedNumber || 'NA',
+        ward: bed?.ward || 'Unknown',
+        bedType: bed?.bedType || 'general',
+        admissionReason: allocation.admissionReason,
+        diagnosis: allocation.admissionDiagnosis,
+        admittingDoctorName: allocation.admittingDoctorName,
+        expectedStayDays: allocation.expectedStayDays,
+        status: allocation.status,
+        allocatedAt: allocation.allocatedAt,
+        releasedAt: allocation.releasedAt,
+      };
+    });
 }
 
 export function getDashboardStats() {
@@ -1006,6 +1236,63 @@ export function getAdminPatients() {
   });
 }
 
+function maskEmail(email: string) {
+  const [name, domain] = email.split('@');
+  if (!name || !domain) return 'hidden';
+  const keep = Math.min(2, name.length);
+  return `${name.slice(0, keep)}***@${domain}`;
+}
+
+function maskPhone(phone: string | undefined) {
+  if (!phone) return 'hidden';
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 4) return 'hidden';
+  return `******${digits.slice(-4)}`;
+}
+
+export function getAdminPatientData(filters?: { ward?: string; intakeType?: string }) {
+  const store = getStore();
+
+  const rows = store.appointments.map((apt) => {
+    const patient = store.patients.find((p) => p.id === apt.patientId);
+    const patientUser = patient ? store.users.find((u) => u.id === patient.userId) : null;
+    const doctor = store.doctors.find((d) => d.id === apt.doctorId);
+    const doctorUser = doctor ? store.users.find((u) => u.id === doctor.userId) : null;
+
+    const allocation = store.bedAllocations
+      .filter((allocationItem) => allocationItem.patientId === apt.patientId)
+      .sort((a, b) => (a.allocatedAt > b.allocatedAt ? -1 : 1))[0];
+    const bed = allocation ? store.beds.find((b) => b.id === allocation.bedId) : null;
+
+    return {
+      id: `apt-${apt.id}`,
+      date: `${apt.appointmentDate} ${apt.appointmentTime}`,
+      patientName: patientUser ? `${patientUser.firstName} ${patientUser.lastName}` : 'Unknown',
+      patientId: patient?.patientId || 'NA',
+      doctorName: doctorUser ? `${doctorUser.firstName} ${doctorUser.lastName}` : 'Unassigned',
+      specialization: doctor?.specialization || 'General Medicine',
+      ward: bed?.ward || 'General',
+      intakeType: apt.status === 'scheduled' ? 'appointment' : 'walk-in',
+      visitStatus: apt.status,
+      reason: apt.reasonForVisit || 'Consultation',
+      protectedEmail: maskEmail(patientUser?.email || 'hidden'),
+      protectedPhone: maskPhone(patientUser?.phone),
+    };
+  });
+
+  const filteredRows = rows.filter((row) => {
+    if (filters?.ward && filters.ward !== 'all' && row.ward.toLowerCase() !== filters.ward.toLowerCase()) {
+      return false;
+    }
+    if (filters?.intakeType && filters.intakeType !== 'all' && row.intakeType !== filters.intakeType) {
+      return false;
+    }
+    return true;
+  });
+
+  return filteredRows.sort((a, b) => (a.date > b.date ? -1 : 1));
+}
+
 export function getEmergencyCases() {
   const store = getStore();
   return store.emergencies.map((e) => {
@@ -1020,7 +1307,9 @@ export function getEmergencyCases() {
       severity: e.severity,
       description: e.description,
       status: e.status,
+      assignedDoctorId: e.assignedDoctorId,
       assignedDoctor: doctorUser ? `${doctorUser.firstName} ${doctorUser.lastName}` : 'Unassigned',
+      assignmentAuditTrail: e.assignmentAuditTrail,
       createdAt: e.createdAt,
     };
   });
@@ -1031,6 +1320,50 @@ export function updateEmergencyStatus(caseId: number, status: DemoEmergency['sta
   const emergency = store.emergencies.find((e) => e.id === caseId);
   if (!emergency) return false;
   emergency.status = status;
+  return true;
+}
+
+export function updateEmergencyAssignment(
+  caseId: number,
+  assignedDoctorId: number | null,
+  options?: {
+    actorUserId?: number;
+    actorLabel?: string;
+    forceOverride?: boolean;
+  }
+) {
+  const store = getStore();
+  const emergency = store.emergencies.find((e) => e.id === caseId);
+  if (!emergency) return false;
+
+  const previousDoctorId = emergency.assignedDoctorId;
+
+  if (!emergency.assignmentAuditTrail) {
+    emergency.assignmentAuditTrail = [];
+  }
+
+  if (options?.forceOverride) {
+    const lookupDoctorName = (doctorId: number | null) => {
+      if (!doctorId) return 'Unassigned';
+      const doctor = store.doctors.find((d) => d.id === doctorId);
+      if (!doctor) return 'Unknown Doctor';
+      const doctorUser = store.users.find((u) => u.id === doctor.userId);
+      return doctorUser ? `${doctorUser.firstName} ${doctorUser.lastName}` : 'Unknown Doctor';
+    };
+
+    emergency.assignmentAuditTrail.push({
+      time: new Date().toISOString(),
+      actorUserId: options.actorUserId ?? 0,
+      actorLabel: options.actorLabel ?? 'Admin',
+      previousDoctorId,
+      previousDoctorName: lookupDoctorName(previousDoctorId),
+      newDoctorId: assignedDoctorId,
+      newDoctorName: lookupDoctorName(assignedDoctorId),
+      note: 'Override assignment used for pending critical emergency case.',
+    });
+  }
+
+  emergency.assignedDoctorId = assignedDoctorId;
   return true;
 }
 

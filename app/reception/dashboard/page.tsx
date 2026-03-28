@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Heart, LogOut, Users, Clock, AlertTriangle, CheckCircle, TrendingUp } from 'lucide-react';
+import { Heart, LogOut, Users, Clock, AlertTriangle, CheckCircle, TrendingUp, ClipboardList, UserRoundCheck } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { AddPatientForm } from '@/components/reception/add-patient-form';
 
@@ -91,7 +91,7 @@ export default function ReceptionDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
           <div>
             <h2 className="text-3xl font-bold text-foreground">Reception Command Center</h2>
             <p className="text-muted-foreground text-sm mt-1" suppressHydrationWarning>
@@ -114,7 +114,7 @@ export default function ReceptionDashboard() {
         </div>
 
         {/* Key Metrics Cards */}
-        <div className="grid md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5 mb-8">
           <Card className="border-secondary/20 bg-gradient-to-br from-blue-50 to-blue-50/50">
             <CardContent className="pt-6">
               <p className="text-muted-foreground text-xs font-semibold uppercase mb-2">Total in Queue</p>
@@ -163,7 +163,7 @@ export default function ReceptionDashboard() {
         </div>
 
         {/* Quick Actions and Operations */}
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {/* Queue Management */}
           <Card className="border-secondary/20 md:col-span-2">
             <CardHeader>
@@ -259,6 +259,55 @@ export default function ReceptionDashboard() {
                 onClick={() => router.push('/reception/queue')}
               >
                 View Detailed Queue
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mt-6">
+          <Card className="border-secondary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-secondary" />
+                Front Desk Task Board
+              </CardTitle>
+              <CardDescription>Priority tasks to keep patient flow stable</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
+              <div className="rounded-md border border-secondary/20 bg-secondary/5 p-3">Validate incoming patient details before queue entry</div>
+              <div className="rounded-md border border-blue-500/20 bg-blue-500/5 p-3">Escalate emergency tags to available doctors</div>
+              <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3">Re-check patients waiting over 20 minutes</div>
+              <div className="rounded-md border border-green-500/20 bg-green-500/5 p-3">Confirm contact and insurance for billing handoff</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-secondary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserRoundCheck className="w-5 h-5 text-primary" />
+                Service Quality Monitor
+              </CardTitle>
+              <CardDescription>Real-time indicators for front desk quality</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span>Check-in Completion</span>
+                  <span className="font-semibold">{stats ? Math.max(70, Math.min(99, 100 - stats.noShowsToday * 8)) : 0}%</span>
+                </div>
+                <Progress value={stats ? Math.max(70, Math.min(99, 100 - stats.noShowsToday * 8)) : 0} className="h-2" />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span>Queue Communication</span>
+                  <span className="font-semibold">{stats ? Math.max(68, 100 - stats.averageWaitTime * 2) : 0}%</span>
+                </div>
+                <Progress value={stats ? Math.max(68, 100 - stats.averageWaitTime * 2) : 0} className="h-2" />
+              </div>
+
+              <Button className="w-full" variant="outline" onClick={() => router.push('/reception/patients')}>
+                Open Patient Records Workspace
               </Button>
             </CardContent>
           </Card>
