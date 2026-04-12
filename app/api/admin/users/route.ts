@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser, hashPassword } from '@/lib/auth';
-import { query } from '@/lib/db';
+import { query } from '@/lib/db-server';
 import { createStaffUser, getStaffUsers, toggleStaffActive, updateStaffUser } from '@/lib/demo-store';
 
 const ROLE_PREFIX: Record<string, string> = {
@@ -55,14 +55,16 @@ export async function POST(request: NextRequest) {
   }
 
   const { firstName, lastName, email, phone, role, specialization } = await request.json();
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const normalizedPhone = String(phone || '').trim();
 
   if (!firstName || !lastName || !role) {
     return NextResponse.json({ error: 'firstName, lastName, and role are required' }, { status: 400 });
   }
-  if (!email?.trim()) {
+  if (!normalizedEmail) {
     return NextResponse.json({ error: 'Email is required' }, { status: 400 });
   }
-  if (!phone?.trim()) {
+  if (!normalizedPhone) {
     return NextResponse.json({ error: 'Mobile number is required' }, { status: 400 });
   }
   if (!['admin', 'doctor', 'reception', 'driver'].includes(role)) {
@@ -72,11 +74,52 @@ export async function POST(request: NextRequest) {
   try {
     await ensureColumns();
 
+    const existingUserEmail = await query('SELECT id FROM users WHERE LOWER(email) = $1 LIMIT 1', [normalizedEmail]);
+    if (existingUserEmail.rows.length > 0) {
+      return NextResponse.json({ error: 'Email already exists' }, { status: 409 });
+    }
+
+    const existingUserPhone = await query('SELECT id FROM users WHERE phone = $1 LIMIT 1', [normalizedPhone]);
+    if (existingUserPhone.rows.length > 0) {
+      return NextResponse.json({ error: 'Mobile number already exists' }, { status: 409 });
+    }
+
+    try {
+      const existingPatientEmail = await query('SELECT id FROM patient_pre_registration WHERE LOWER(email) = $1 LIMIT 1', [normalizedEmail]);
+      if (existingPatientEmail.rows.length > 0) {
+        return NextResponse.json({ error: 'Email already exists' }, { status: 409 });
+      }
+      const existingPatientPhone = await query('SELECT id FROM patient_pre_registration WHERE phone = $1 LIMIT 1', [normalizedPhone]);
+      if (existingPatientPhone.rows.length > 0) {
+        return NextResponse.json({ error: 'Mobile number already exists' }, { status: 409 });
+      }
+    } catch {
+      // patient_pre_registration table may not exist in some environments
+    }
+
     let staffId = '';
     for (let i = 0; i < 10; i++) {
       const candidate = generateStaffId(role);
       const existing = await query('SELECT id FROM users WHERE staff_id = $1', [candidate]);
-      if (existing.rows.length === 0) { staffId = candidate; break; }
+      if (existing.rows.length > 0) {
+        continue;
+      }
+
+      let clashesWithPatientId = false;
+      try {
+        const patientIdMatch = await query(
+          'SELECT id FROM patient_pre_registration WHERE patient_id_unique = $1',
+          [candidate]
+        );
+        clashesWithPatientId = patientIdMatch.rows.length > 0;
+      } catch {
+        // patient_pre_registration table may not exist in some environments
+      }
+
+      if (!clashesWithPatientId) {
+        staffId = candidate;
+        break;
+      }
     }
     if (!staffId) return NextResponse.json({ error: 'Could not generate unique Staff ID' }, { status: 500 });
 
@@ -86,7 +129,7 @@ export async function POST(request: NextRequest) {
       `INSERT INTO users (staff_id, email, phone, password_hash, first_name, last_name, role, is_active, must_change_password)
        VALUES ($1, $2, $3, $4, $5, $6, $7, true, true)
        RETURNING id, staff_id, first_name, last_name, role`,
-      [staffId, email.trim(), phone.trim(), passwordHash, firstName, lastName, role]
+      [staffId, normalizedEmail, normalizedPhone, passwordHash, firstName, lastName, role]
     );
 
     const created = result.rows[0];

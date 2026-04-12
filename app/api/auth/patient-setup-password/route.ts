@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { query } from '@/lib/db-server';
 import { hashPassword, setAuthCookie, generateToken } from '@/lib/auth';
+
+const STRONG_PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 async function ensurePatientColumns() {
   await query('ALTER TABLE patient_pre_registration ADD COLUMN IF NOT EXISTS age INTEGER');
@@ -27,9 +29,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (password.length < 6) {
+  if (!STRONG_PASSWORD_PATTERN.test(password)) {
     return NextResponse.json(
-      { error: 'Password must be at least 6 characters long' },
+      { error: 'Password must be at least 8 characters and include uppercase, lowercase, number, and symbol' },
+      { status: 400 }
+    );
+  }
+
+  if (password === '123456') {
+    return NextResponse.json(
+      { error: 'Please choose a different password than the default one' },
       { status: 400 }
     );
   }

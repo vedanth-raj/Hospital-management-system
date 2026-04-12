@@ -39,7 +39,7 @@ export async function PATCH(request: NextRequest) {
   let updated = true;
 
   if (hasStatusUpdate) {
-    updated = updateEmergencyStatus(normalizedCaseId, status) && updated;
+    updated = updateEmergencyStatus(normalizedCaseId, status as 'pending' | 'in-progress' | 'resolved') && updated;
   }
 
   if (hasAssignmentUpdate) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { query } from '@/lib/db';
+import { query } from '@/lib/db-server';
 
 async function ensurePatientColumns() {
   await query('ALTER TABLE patient_pre_registration ADD COLUMN IF NOT EXISTS age INTEGER');

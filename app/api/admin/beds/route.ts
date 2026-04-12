@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { getClient, query } from '@/lib/db';
+import { getClient, query } from '@/lib/db-server';
 import { getBeds, updateBedAllocation } from '@/lib/demo-store';
 
 async function ensureBedAllocationTables() {
@@ -129,6 +129,72 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching beds:', error);
     return NextResponse.json({ beds: getBeds() }, { status: 200 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'admin') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const {
+    bedNumber,
+    ward,
+    bedType,
+    floor,
+  }: {
+    bedNumber?: string;
+    ward?: string;
+    bedType?: string;
+    floor?: number;
+  } = await request.json();
+
+  if (!bedNumber?.trim() || !ward?.trim() || !bedType?.trim() || !Number.isInteger(Number(floor))) {
+    return NextResponse.json(
+      { error: 'bedNumber, ward, bedType, and floor are required' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    await ensureBedAllocationTables();
+
+    const normalizedBedNumber = bedNumber.trim().toUpperCase();
+    const normalizedWard = ward.trim();
+    const normalizedBedType = bedType.trim().toLowerCase();
+    const normalizedFloor = Number(floor);
+
+    const existing = await query('SELECT id FROM beds WHERE UPPER(bed_number) = UPPER($1)', [normalizedBedNumber]);
+    if (existing.rows.length > 0) {
+      return NextResponse.json({ error: 'Bed number already exists' }, { status: 409 });
+    }
+
+    const created = await query(
+      `INSERT INTO beds (bed_number, ward, bed_type, floor_number, is_available)
+       VALUES ($1, $2, $3, $4, true)
+       RETURNING id, bed_number, ward, bed_type, floor_number, is_available`,
+      [normalizedBedNumber, normalizedWard, normalizedBedType, normalizedFloor],
+    );
+
+    const row = created.rows[0];
+    return NextResponse.json(
+      {
+        message: 'Bed created successfully',
+        bed: {
+          id: row.id,
+          bedNumber: row.bed_number,
+          ward: row.ward,
+          bedType: row.bed_type,
+          floor: row.floor_number,
+          isAvailable: row.is_available,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('Error creating bed:', error);
+    return NextResponse.json({ error: 'Failed to create bed' }, { status: 500 });
   }
 }
 

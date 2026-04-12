@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 
 export default function PatientSetupPage() {
   const router = useRouter();
+  const strongPasswordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
   const [step, setStep] = useState<'login' | 'setup'>('login');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -104,8 +105,8 @@ export default function PatientSetupPage() {
       return;
     }
 
-    if (setupData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    if (!strongPasswordPattern.test(setupData.password)) {
+      setError('Password must be at least 8 characters and include uppercase, lowercase, number, and symbol');
       setIsLoading(false);
       return;
     }
@@ -224,7 +225,7 @@ export default function PatientSetupPage() {
               <Alert className="bg-blue-50 border-blue-200">
                 <AlertCircle className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-sm text-blue-700 ml-2">
-                  Create a strong password to protect your account
+                  Create a strong password: minimum 8 characters with uppercase, lowercase, number, and symbol.
                 </AlertDescription>
               </Alert>
 
@@ -236,8 +237,9 @@ export default function PatientSetupPage() {
                   type="password"
                   value={setupData.password}
                   onChange={handleSetupChange}
-                  placeholder="Enter password (min 6 characters)"
+                  placeholder="Min 8 with A-Z, a-z, 0-9, symbol"
                   disabled={isLoading}
+                  minLength={8}
                 />
               </div>
 

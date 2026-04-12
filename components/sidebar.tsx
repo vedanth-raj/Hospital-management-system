@@ -176,7 +176,7 @@ export function Sidebar({ role, userName }: SidebarProps) {
     <>
       {/* Mobile toggle button */}
       <button
-        className="fixed top-4 left-4 z-50 md:hidden bg-primary text-white p-2 rounded-lg shadow-lg"
+        className="fixed top-4 left-4 z-50 md:hidden bg-sidebar text-white p-2 rounded-lg shadow-lg"
         onClick={() => setMobileOpen(!mobileOpen)}
       >
         {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -189,7 +189,7 @@ export function Sidebar({ role, userName }: SidebarProps) {
 
       {/* Mobile sidebar */}
       <aside className={cn(
-        'fixed top-0 left-0 h-full z-40 w-64 bg-primary transition-transform duration-300 md:hidden',
+        'fixed top-0 left-0 h-full z-40 w-64 bg-sidebar transition-transform duration-300 md:hidden',
         mobileOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
         <NavContent />
@@ -197,14 +197,14 @@ export function Sidebar({ role, userName }: SidebarProps) {
 
       {/* Desktop sidebar */}
       <aside className={cn(
-        'hidden md:flex flex-col fixed top-0 left-0 h-full bg-primary transition-all duration-300 z-30',
+        'hidden md:flex flex-col fixed top-0 left-0 h-full bg-sidebar transition-all duration-300 z-30',
         collapsed ? 'w-16' : 'w-60'
       )}>
         <NavContent />
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-primary border-2 border-white/20 flex items-center justify-center text-white hover:bg-primary/80 transition-colors shadow-md"
+          className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-sidebar border-2 border-white/20 flex items-center justify-center text-white hover:opacity-90 transition-colors shadow-md"
         >
           {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
         </button>

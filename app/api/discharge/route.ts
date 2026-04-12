@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { query } from '@/lib/db-server';
 
 // Mock discharge data
 const mockDischarges = [
@@ -185,6 +186,27 @@ export async function PATCH(request: NextRequest) {
 
     if (status === 'completed') {
       discharge.dischargeDate = new Date().toISOString().split('T')[0];
+
+      // Keep bed lifecycle consistent when discharge is completed.
+      try {
+        await query(
+          `UPDATE bed_allocations
+           SET status = 'released', released_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+           WHERE patient_id = $1 AND status = 'active'`,
+          [discharge.patientId],
+        );
+
+        await query(
+          `UPDATE beds
+           SET allocated_to_patient_id = NULL,
+               is_available = true,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE allocated_to_patient_id = $1`,
+          [discharge.patientId],
+        );
+      } catch (dbError) {
+        console.error('Bed auto-release skipped during discharge completion:', dbError);
+      }
     }
 
     return NextResponse.json(discharge);

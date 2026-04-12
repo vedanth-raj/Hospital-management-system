@@ -11,7 +11,7 @@ function verifyToken(token: string): any {
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
   const pathname = request.nextUrl.pathname;
 
@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
   ];
 
   // Check if route is public
-  if (publicRoutes.some(route => pathname.startsWith(route))) {
+  if (publicRoutes.some((route) => pathname.startsWith(route))) {
     // If user is already logged in and tries to access auth pages, redirect to dashboard
     if (token && (pathname === '/auth/login' || pathname === '/auth/register')) {
       const decoded = verifyToken(token);

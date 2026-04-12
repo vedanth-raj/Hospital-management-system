@@ -2,22 +2,19 @@
 
 import React, { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Heart, Stethoscope, Users, Zap } from 'lucide-react';
 
 export default function Home() {
-  useEffect(() => {
-    // Initialize database in background for first-run setup.
-    const initializeApp = async () => {
-      try {
-        await fetch('/api/init', { method: 'GET' });
-      } catch (error) {
-        console.error('Database initialization skipped:', error);
-      }
-    };
+  const router = useRouter();
 
-    initializeApp();
-  }, []);
+  useEffect(() => {
+    // Prefetch key routes for near-instant first navigation.
+    router.prefetch('/auth/login');
+    router.prefetch('/auth/patient-setup');
+    router.prefetch('/emergency');
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/5 to-background">

@@ -7,12 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Heart, Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 
 export default function ChangePasswordPage() {
   const router = useRouter();
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const strongPasswordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +26,8 @@ export default function ChangePasswordPage() {
       setError('New passwords do not match');
       return;
     }
-    if (form.newPassword.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (!strongPasswordPattern.test(form.newPassword)) {
+      setError('Password must be at least 8 characters and include uppercase, lowercase, number, and symbol');
       return;
     }
     if (form.newPassword === '123456') {
@@ -33,6 +37,36 @@ export default function ChangePasswordPage() {
 
     setIsLoading(true);
     try {
+      const firebaseUser = auth.currentUser;
+
+      // Staff accounts authenticated via Firebase should update password there first.
+      if (firebaseUser?.email) {
+        const credential = EmailAuthProvider.credential(firebaseUser.email, form.currentPassword);
+        await reauthenticateWithCredential(firebaseUser, credential);
+        await updatePassword(firebaseUser, form.newPassword);
+
+        const userRef = doc(db, 'users', firebaseUser.email.toLowerCase());
+        const userSnap = await getDoc(userRef);
+        const userData = userSnap.data();
+        const role = userData?.role || 'staff';
+
+        await updateDoc(userRef, {
+          mustChangePassword: false,
+          passwordUpdatedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+
+        const roleRedirects: Record<string, string> = {
+          admin: '/admin/dashboard',
+          doctor: '/doctor/queue',
+          reception: '/reception/dashboard',
+          driver: '/driver/dashboard',
+        };
+
+        router.push(roleRedirects[role] || '/');
+        return;
+      }
+
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -52,8 +86,8 @@ export default function ChangePasswordPage() {
         driver: '/driver/dashboard',
       };
       router.push(roleRedirects[profile.role] || '/');
-    } catch {
-      setError('Unexpected error');
+    } catch (err: any) {
+      setError(err?.message || 'Unexpected error');
     } finally {
       setIsLoading(false);
     }
@@ -84,6 +118,7 @@ export default function ChangePasswordPage() {
               <AlertCircle className="h-4 w-4 text-amber-600" />
               <AlertDescription className="text-amber-800 ml-2">
                 Default password is <span className="font-mono font-bold">123456</span>. Enter it as your current password, then choose a new one.
+                New password must be at least 8 characters with uppercase, lowercase, number, and symbol.
               </AlertDescription>
             </Alert>
 
@@ -111,12 +146,12 @@ export default function ChangePasswordPage() {
                 <label className="text-sm font-medium">New Password</label>
                 <Input
                   type="password"
-                  placeholder="Min 6 characters"
+                  placeholder="Min 8 with A-Z, a-z, 0-9, symbol"
                   value={form.newPassword}
                   onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
                   required
                   disabled={isLoading}
-                  minLength={6}
+                  minLength={8}
                 />
               </div>
 

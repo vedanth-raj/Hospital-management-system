@@ -15,6 +15,7 @@ import {
   FileText,
   BedDouble,
   UserRound,
+  Plus,
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
@@ -96,6 +97,13 @@ const defaultAllocationForm: Required<AllocationDetails> & { patientId: string }
   allocatedAt: '',
 };
 
+const defaultNewBedForm = {
+  bedNumber: '',
+  ward: '',
+  bedType: 'general',
+  floor: 1,
+};
+
 export default function BedsPage() {
   const [beds, setBeds] = useState<Bed[]>([]);
   const [patients, setPatients] = useState<PatientOption[]>([]);
@@ -105,8 +113,11 @@ export default function BedsPage() {
   const [bedTypeFilter, setBedTypeFilter] = useState('all');
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
   const [isAllocationDialogOpen, setIsAllocationDialogOpen] = useState(false);
+  const [isAddBedDialogOpen, setIsAddBedDialogOpen] = useState(false);
   const [selectedBed, setSelectedBed] = useState<Bed | null>(null);
   const [allocationForm, setAllocationForm] = useState(defaultAllocationForm);
+  const [newBedForm, setNewBedForm] = useState(defaultNewBedForm);
+  const [isAddingBed, setIsAddingBed] = useState(false);
   const [isSavingAllocation, setIsSavingAllocation] = useState(false);
   const router = useRouter();
 
@@ -233,6 +244,37 @@ export default function BedsPage() {
       await fetchBeds();
     } finally {
       setIsSavingAllocation(false);
+    }
+  };
+
+  const submitAddBed = async () => {
+    if (!newBedForm.bedNumber.trim() || !newBedForm.ward.trim() || !newBedForm.bedType.trim()) {
+      return;
+    }
+
+    setIsAddingBed(true);
+    try {
+      const res = await fetch('/api/admin/beds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          bedNumber: newBedForm.bedNumber,
+          ward: newBedForm.ward,
+          bedType: newBedForm.bedType,
+          floor: Number(newBedForm.floor),
+        }),
+      });
+
+      if (!res.ok) {
+        return;
+      }
+
+      setIsAddBedDialogOpen(false);
+      setNewBedForm(defaultNewBedForm);
+      await fetchBeds();
+    } finally {
+      setIsAddingBed(false);
     }
   };
 
@@ -401,6 +443,76 @@ export default function BedsPage() {
                 <CardDescription>Allocate beds with complete admission details</CardDescription>
               </div>
               <div className="flex gap-2">
+                <Dialog open={isAddBedDialogOpen} onOpenChange={setIsAddBedDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Bed
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Add New Bed</DialogTitle>
+                      <DialogDescription>Create a new bed for allocation.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium mb-1 block">Bed Number</label>
+                        <Input
+                          value={newBedForm.bedNumber}
+                          onChange={(e) => setNewBedForm((prev) => ({ ...prev, bedNumber: e.target.value.toUpperCase() }))}
+                          placeholder="B-101"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-1 block">Ward</label>
+                        <Input
+                          value={newBedForm.ward}
+                          onChange={(e) => setNewBedForm((prev) => ({ ...prev, ward: e.target.value }))}
+                          placeholder="General Ward"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">Bed Type</label>
+                          <Select
+                            value={newBedForm.bedType}
+                            onValueChange={(value) => setNewBedForm((prev) => ({ ...prev, bedType: value }))}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="general">General</SelectItem>
+                              <SelectItem value="icu">ICU</SelectItem>
+                              <SelectItem value="pediatric">Pediatric</SelectItem>
+                              <SelectItem value="maternity">Maternity</SelectItem>
+                              <SelectItem value="isolation">Isolation</SelectItem>
+                              <SelectItem value="emergency">Emergency</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium mb-1 block">Floor</label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={newBedForm.floor}
+                            onChange={(e) => setNewBedForm((prev) => ({ ...prev, floor: Number(e.target.value || 1) }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          className="flex-1"
+                          disabled={isAddingBed || !newBedForm.bedNumber.trim() || !newBedForm.ward.trim()}
+                          onClick={submitAddBed}
+                        >
+                          {isAddingBed ? 'Adding...' : 'Add Bed'}
+                        </Button>
+                        <Button variant="outline" onClick={() => setIsAddBedDialogOpen(false)}>Cancel</Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 <Button variant="outline" size="sm" onClick={handleExportCSV}>
                   <Download className="w-4 h-4 mr-2" />
                   CSV

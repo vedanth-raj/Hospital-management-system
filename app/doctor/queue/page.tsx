@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Empty } from '@/components/ui/empty';
+import { Empty, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { Heart, Users, LogOut, Stethoscope, AlertTriangle, ChevronDown, FileText, UserCheck, ShieldAlert } from 'lucide-react';
 import {
   Dialog,
@@ -330,11 +330,13 @@ export default function DoctorQueuePage() {
             {isLoading ? (
               <div className="text-center py-8">Loading queue...</div>
             ) : queue.length === 0 ? (
-              <Empty
-                icon={Users}
-                title="No Patients in Queue"
-                description="All caught up! No patients waiting at the moment."
-              />
+              <Empty>
+                <EmptyMedia variant="icon">
+                  <Users className="size-6" />
+                </EmptyMedia>
+                <EmptyTitle>No Patients in Queue</EmptyTitle>
+                <EmptyDescription>All caught up! No patients waiting at the moment.</EmptyDescription>
+              </Empty>
             ) : (
               <div className="space-y-3">
                 {queue.map((patient, index) => {
@@ -366,7 +368,7 @@ export default function DoctorQueuePage() {
                             <div className="flex items-center gap-2 mb-1">
                               <p className="font-semibold text-foreground text-lg">{patient.patientName}</p>
                               {hasAllergies && (
-                                <AlertTriangle className="w-4 h-4 text-amber-600" title="Patient has allergies" />
+                                <AlertTriangle className="w-4 h-4 text-amber-600" />
                               )}
                             </div>
                             <p className="text-sm text-muted-foreground">

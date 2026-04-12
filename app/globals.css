@@ -30,7 +30,7 @@
   --chart-4: oklch(0.65 0.085 56.8); /* Amber/Orange */
   --chart-5: oklch(0.5 0.07 280); /* Purple Accent */
   --radius: 0.5rem; /* Clean, professional rounding */
-  --sidebar: oklch(0.97 0 0); /* Very light gray sidebar */
+  --sidebar: #0D1321; /* Global sidebar color */
   --sidebar-foreground: oklch(0.2 0 0); /* Dark text */
   --sidebar-primary: oklch(0.45 0.124 262.76); /* Medical blue */
   --sidebar-primary-foreground: oklch(0.99 0 0); /* White text */
@@ -65,7 +65,7 @@
   --chart-3: oklch(0.62 0.21 21.2); /* Medical Red */
   --chart-4: oklch(0.72 0.085 56.8); /* Amber/Orange */
   --chart-5: oklch(0.6 0.07 280); /* Purple Accent */
-  --sidebar: oklch(0.18 0 0); /* Dark sidebar */
+  --sidebar: #0D1321; /* Global sidebar color */
   --sidebar-foreground: oklch(0.92 0 0); /* Light text */
   --sidebar-primary: oklch(0.55 0.124 262.76); /* Medical blue */
   --sidebar-primary-foreground: oklch(0.15 0 0); /* Dark text */
@@ -76,8 +76,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: var(--font-geist-sans), 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -135,20 +135,29 @@
   
   /* Smooth hover transitions for interactive elements */
   .hover-lift {
-    @apply transition-all duration-300 hover:scale-105 hover:shadow-lg;
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md;
   }
   
   .hover-glow {
-    @apply transition-all duration-200 hover:shadow-md hover:shadow-primary/20;
+    @apply transition-all duration-200 hover:shadow-sm hover:shadow-primary/20;
   }
   
   /* Table row hover effects */
   tr:hover {
-    @apply bg-accent/50 cursor-pointer;
+    @apply bg-accent/30;
   }
   
   /* Navigation link hover effects */
   nav a {
     @apply transition-colors duration-200 hover:text-primary;
+  }
+
+  /* Use for emergency badges/cards/buttons where explicit red is required */
+  .emergency-tone {
+    @apply text-destructive;
+  }
+
+  .emergency-bg {
+    @apply bg-destructive text-destructive-foreground;
   }
 }

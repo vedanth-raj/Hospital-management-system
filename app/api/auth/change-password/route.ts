@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { query } from '@/lib/db';
+import { query } from '@/lib/db-server';
 import { hashPassword, comparePassword } from '@/lib/auth';
 import { changeStaffPassword } from '@/lib/demo-store';
+
+const STRONG_PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
@@ -16,8 +18,11 @@ export async function POST(request: NextRequest) {
   if (newPassword !== confirmPassword) {
     return NextResponse.json({ error: 'New passwords do not match' }, { status: 400 });
   }
-  if (newPassword.length < 6) {
-    return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
+  if (!STRONG_PASSWORD_PATTERN.test(newPassword)) {
+    return NextResponse.json(
+      { error: 'Password must be at least 8 characters and include uppercase, lowercase, number, and symbol' },
+      { status: 400 }
+    );
   }
   if (newPassword === '123456') {
     return NextResponse.json({ error: 'Please choose a different password than the default' }, { status: 400 });

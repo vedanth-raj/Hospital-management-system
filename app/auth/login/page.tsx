@@ -10,11 +10,12 @@ import { useToast } from '@/hooks/use-toast';
 import { Heart, AlertCircle, ShieldCheck } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-export default function LoginPage() {
+export default function StaffLogin() {
   const [staffId, setStaffId] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  
   const router = useRouter();
   const { toast } = useToast();
 
@@ -24,25 +25,39 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const normalizedStaffId = staffId.trim().toUpperCase();
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ staffId, password }),
+        credentials: 'include',
+        body: JSON.stringify({
+          staffId: normalizedStaffId,
+          password,
+        }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Login failed');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data?.error || 'Invalid Staff ID or password');
+        return;
       }
 
-      const data = await response.json();
-      toast({ title: 'Welcome back', description: 'Logged in successfully' });
+      const role = data?.user?.role || 'staff';
+      const mustChangePassword = Boolean(data?.user?.mustChangePassword) || password === '123456';
 
-      // Force password change on first login
-      if (data.user.mustChangePassword) {
+      if (mustChangePassword) {
+        toast({
+          title: 'Password update required',
+          description: 'Please change your default password to continue.',
+        });
         router.push('/auth/change-password');
         return;
       }
+
+      toast({
+        title: 'Welcome back!',
+        description: `Logged in as ${role}`,
+      });
 
       const roleRedirects: Record<string, string> = {
         admin: '/admin/dashboard',
@@ -51,9 +66,10 @@ export default function LoginPage() {
         driver: '/driver/dashboard',
       };
 
-      router.push(roleRedirects[data.user.role] || '/');
+      router.push(roleRedirects[role] || '/');
+
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Invalid Staff ID or password');
     } finally {
       setIsLoading(false);
     }
@@ -76,9 +92,21 @@ export default function LoginPage() {
               <ShieldCheck className="w-5 h-5 text-secondary" />
               Staff Login
             </CardTitle>
-            <CardDescription>Use your 8-digit Staff ID issued by the hospital admin</CardDescription>
+            <CardDescription>Sign in with your 8-character Staff ID</CardDescription>
           </CardHeader>
+
           <CardContent>
+            <div className="mb-5 grid grid-cols-2 gap-2 rounded-lg border border-border p-2 bg-muted/40">
+              <Button type="button" className="w-full" disabled>
+                Staff
+              </Button>
+              <Link href="/auth/patient-setup" className="w-full">
+                <Button type="button" variant="outline" className="w-full">
+                  Patient
+                </Button>
+              </Link>
+            </div>
+
             <form onSubmit={handleLogin} className="space-y-5">
               {error && (
                 <Alert variant="destructive">
@@ -88,21 +116,20 @@ export default function LoginPage() {
               )}
 
               <div className="space-y-2">
-                <label htmlFor="staffId" className="text-sm font-medium text-foreground">
+                <label htmlFor="staff-id" className="text-sm font-medium text-foreground">
                   Staff ID
                 </label>
                 <Input
-                  id="staffId"
+                  id="staff-id"
                   type="text"
-                  placeholder="e.g. D1234567"
+                  placeholder="e.g. A1000001"
                   value={staffId}
                   onChange={(e) => setStaffId(e.target.value.toUpperCase().slice(0, 8))}
                   disabled={isLoading}
                   required
-                  className="font-mono tracking-widest text-lg bg-secondary/5 border-secondary/20"
                   maxLength={8}
+                  className="font-mono tracking-widest"
                 />
-                <p className="text-xs text-muted-foreground">8-character code — starts with a letter (A/D/R/E) followed by 7 digits</p>
               </div>
 
               <div className="space-y-2">
@@ -117,11 +144,14 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
                   required
-                  className="bg-secondary/5 border-secondary/20"
                 />
               </div>
 
-              <Button type="submit" disabled={isLoading || staffId.length !== 8} className="w-full bg-primary hover:bg-primary/90">
+              <Button 
+                type="submit" 
+                disabled={isLoading || staffId.length !== 8} 
+                className="w-full bg-primary hover:bg-primary/90"
+              >
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
@@ -130,24 +160,25 @@ export default function LoginPage() {
               <p className="text-sm text-muted-foreground mb-3">Are you a patient?</p>
               <Link href="/auth/patient-setup">
                 <Button variant="outline" className="w-full border-secondary/30">
-                  Patient Login (Use your Patient ID)
+                  Patient Login
                 </Button>
               </Link>
             </div>
           </CardContent>
         </Card>
 
-        {/* Demo credentials */}
+        {/* Demo Info */}
         <Card className="mt-4 bg-secondary/5 border-secondary/20">
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs font-semibold text-secondary mb-2">Demo Staff IDs:</p>
-            <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
-              <p><span className="font-medium">Admin:</span> A1000001 / 123456</p>
-              <p><span className="font-medium">Doctor:</span> D1000002 / 123456</p>
-              <p><span className="font-medium">Reception:</span> R1000003 / 123456</p>
-              <p><span className="font-medium">Driver:</span> E1000004 / 123456</p>
+            <p className="text-xs text-muted-foreground">
+              Demo IDs:
+            </p>
+            <div className="mt-2 text-xs space-y-1 text-muted-foreground">
+              <p>A1000001</p>
+              <p>D1000002</p>
+              <p>R1000003</p>
             </div>
-            <p className="text-xs text-muted-foreground mt-2 italic">Format: letter prefix + 7 digits (e.g. D1234567)</p>
+            <p className="text-xs mt-3 italic">Password: Use the password set for that staff account</p>
           </CardContent>
         </Card>
       </div>

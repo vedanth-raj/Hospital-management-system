@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { query } from '@/lib/db';
+import { query } from '@/lib/db-server';
 
 async function ensureReceptionPatientColumns() {
   await query('ALTER TABLE patient_pre_registration ADD COLUMN IF NOT EXISTS age INTEGER');
@@ -76,7 +76,12 @@ export async function POST(request: NextRequest) {
         [patientId]
       );
 
-      if (existingCheck.rows.length === 0) {
+      const existingStaffId = await query(
+        'SELECT id FROM users WHERE staff_id = $1',
+        [patientId]
+      );
+
+      if (existingCheck.rows.length === 0 && existingStaffId.rows.length === 0) {
         isUnique = true;
         break;
       }
