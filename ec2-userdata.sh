@@ -16,8 +16,8 @@ npm install -g pm2
 mkdir -p /home/ec2-user/hospital-app
 cd /home/ec2-user/hospital-app
 
-# Clone repository (replace with your actual repo)
-git clone https://github.com/your-username/Hospital-Management-System.git .
+# Clone repository
+git clone https://github.com/vedanth-raj/Hospital-management-system.git .
 
 # Install dependencies
 npm ci

@@ -9,7 +9,7 @@ ssh -i hospital-app-key.pem ec2-user@54.242.171.2
 
 ### Step 2: Clone Repository
 ```bash
-git clone https://github.com/your-username/Hospital-Management-System.git hospital-app
+git clone https://github.com/vedanth-raj/Hospital-management-system.git hospital-app
 cd hospital-app
 ```
 
