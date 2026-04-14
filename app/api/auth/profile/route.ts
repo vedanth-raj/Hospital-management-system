@@ -14,10 +14,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const numericUserId =
+      typeof user.userId === 'number' ? user.userId : Number(user.userId);
+    if (Number.isNaN(numericUserId)) {
+      return NextResponse.json(
+        { error: 'Invalid user session' },
+        { status: 401 }
+      );
+    }
+
     // Get user details
     const userResult = await query(
       'SELECT id, email, first_name, last_name, role, is_active FROM users WHERE id = $1',
-      [user.userId]
+      [numericUserId]
     );
 
     if (userResult.rows.length === 0) {
@@ -36,7 +45,7 @@ export async function GET(request: NextRequest) {
       if (userData.role === 'patient') {
         const patientResult = await query(
           'SELECT * FROM patients WHERE user_id = $1',
-          [user.userId]
+          [numericUserId]
         );
         if (patientResult.rows.length > 0) {
           additionalData = patientResult.rows[0];
@@ -44,7 +53,7 @@ export async function GET(request: NextRequest) {
       } else if (userData.role === 'doctor') {
         const doctorResult = await query(
           'SELECT * FROM doctors WHERE user_id = $1',
-          [user.userId]
+          [numericUserId]
         );
         if (doctorResult.rows.length > 0) {
           additionalData = doctorResult.rows[0];
@@ -73,7 +82,11 @@ export async function GET(request: NextRequest) {
 
     const user = await getCurrentUser();
     if (user) {
-      const demoProfile = getDemoAuthProfile(user.userId);
+      const numericUserId =
+        typeof user.userId === 'number' ? user.userId : Number(user.userId);
+      const demoProfile = Number.isNaN(numericUserId)
+        ? null
+        : getDemoAuthProfile(numericUserId);
       if (demoProfile) {
         return NextResponse.json(demoProfile, { status: 200 });
       }

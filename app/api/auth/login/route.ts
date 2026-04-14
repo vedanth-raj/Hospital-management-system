@@ -3,24 +3,63 @@ import { query } from '@/lib/db-server';
 import { comparePassword, setAuthCookie, generateToken } from '@/lib/auth';
 import { validateDemoStaffCredentials } from '@/lib/demo-store';
 
+async function ensureUsersColumns() {
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS staff_id VARCHAR(8) UNIQUE`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false`);
+}
+
 export async function POST(request: NextRequest) {
   const { staffId, password } = await request.json();
+  const normalizedStaffId = String(staffId || '').trim().toUpperCase();
 
-  if (!staffId || !password) {
+  if (!normalizedStaffId || !password) {
     return NextResponse.json(
       { error: 'Staff ID and password are required' },
       { status: 400 }
     );
   }
 
+  // If database is not configured, authenticate against demo users directly.
+  if (!process.env.DATABASE_URL) {
+    const demoUser = validateDemoStaffCredentials(normalizedStaffId, password);
+    if (demoUser) {
+      const token = generateToken(demoUser.id, demoUser.role);
+      await setAuthCookie(token);
+
+      return NextResponse.json(
+        {
+          message: 'Login successful (demo mode)',
+          user: {
+            id: demoUser.id,
+            staffId: demoUser.staffId,
+            firstName: demoUser.firstName,
+            lastName: demoUser.lastName,
+            role: demoUser.role,
+            mustChangePassword: demoUser.mustChangePassword ?? false,
+          },
+        },
+        { status: 200 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error:
+          'No persisted staff data is configured. Use demo IDs (A1000001, D1000002, R1000003) with password 123456, or configure a database/Firebase-backed staff store.',
+      },
+      { status: 401 }
+    );
+  }
+
   try {
-    // Ensure staff_id column exists
-    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS staff_id VARCHAR(8) UNIQUE`);
+    // Keep login compatible with older user table schemas.
+    await ensureUsersColumns();
 
     const userResult = await query(
       `SELECT id, email, staff_id, password_hash, first_name, last_name, role, must_change_password
        FROM users WHERE staff_id = $1 AND is_active = true AND role != 'patient'`,
-      [staffId]
+      [normalizedStaffId]
     );
 
     if (userResult.rows.length === 0) {
@@ -59,7 +98,33 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Login error:', error);
 
-    const demoUser = validateDemoStaffCredentials(staffId, password);
+    if (process.env.DATABASE_URL) {
+      if (error instanceof Error) {
+        const anyError = error as Error & { code?: string; cause?: { code?: string } };
+        const errorCode = anyError.code || anyError.cause?.code;
+        const isDbConfigError = error.message.includes('Database pool not initialized');
+        const isDbConnectionError =
+          error.message.includes('Database connection failed') ||
+          error.message.includes('ECONNREFUSED') ||
+          errorCode === 'ECONNREFUSED';
+
+        if (isDbConfigError || isDbConnectionError) {
+          return NextResponse.json(
+            {
+              error: 'Database is unavailable. Verify DATABASE_URL and make sure PostgreSQL is running.',
+            },
+            { status: 503 }
+          );
+        }
+      }
+
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      );
+    }
+
+    const demoUser = validateDemoStaffCredentials(normalizedStaffId, password);
     if (demoUser) {
       const token = generateToken(demoUser.id, demoUser.role);
       await setAuthCookie(token);
@@ -78,22 +143,6 @@ export async function POST(request: NextRequest) {
         },
         { status: 200 }
       );
-    }
-
-    if (error instanceof Error) {
-      const isDbConfigError = error.message.includes('Database pool not initialized');
-      const isDbConnectionError =
-        error.message.includes('Database connection failed') ||
-        error.message.includes('ECONNREFUSED');
-
-      if (isDbConfigError || isDbConnectionError) {
-        return NextResponse.json(
-          {
-            error: 'Database is unavailable. Verify DATABASE_URL and make sure PostgreSQL is running.',
-          },
-          { status: 503 }
-        );
-      }
     }
 
     return NextResponse.json(

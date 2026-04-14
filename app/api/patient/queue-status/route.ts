@@ -8,10 +8,14 @@ export async function GET(request: NextRequest) {
   if (!user || user.role !== 'patient') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const numericUserId = typeof user.userId === 'number' ? user.userId : Number(user.userId);
+  if (Number.isNaN(numericUserId)) {
+    return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
+  }
 
   try {
     // Get patient ID
-    const patientResult = await query('SELECT id FROM patients WHERE user_id = $1', [user.userId]);
+    const patientResult = await query('SELECT id FROM patients WHERE user_id = $1', [numericUserId]);
     if (patientResult.rows.length === 0) {
       return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
     }
@@ -50,7 +54,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching queue status:', error);
-    const queueStatus = getPatientQueueStatus(user.userId);
+    const queueStatus = getPatientQueueStatus(numericUserId);
     return NextResponse.json(queueStatus || { queuePosition: null }, { status: 200 });
   }
 }
@@ -60,12 +64,16 @@ export async function POST(request: NextRequest) {
   if (!user || user.role !== 'patient') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const numericUserId = typeof user.userId === 'number' ? user.userId : Number(user.userId);
+  if (Number.isNaN(numericUserId)) {
+    return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
+  }
 
   const { doctorId, priority = 'normal' } = await request.json();
 
   try {
     // Get patient ID
-    const patientResult = await query('SELECT id FROM patients WHERE user_id = $1', [user.userId]);
+    const patientResult = await query('SELECT id FROM patients WHERE user_id = $1', [numericUserId]);
     if (patientResult.rows.length === 0) {
       return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
     }
@@ -74,7 +82,7 @@ export async function POST(request: NextRequest) {
 
     // Get next queue position
     const maxPositionResult = await query(
-      'SELECT COALESCE(MAX(queue_position), 0) as max_pos FROM queues WHERE doctor_id = $1 AND status != "completed"',
+      "SELECT COALESCE(MAX(queue_position), 0) as max_pos FROM queues WHERE doctor_id = $1 AND status != 'completed'",
       [doctorId]
     );
 
@@ -94,7 +102,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Error joining queue:', error);
-    const queue = joinQueueForPatient(user.userId, Number(doctorId || 1), priority);
+    const queue = joinQueueForPatient(numericUserId, Number(doctorId || 1), priority);
     if (queue) {
       return NextResponse.json(
         { message: 'Added to queue', queueId: queue.id, position: queue.queuePosition },

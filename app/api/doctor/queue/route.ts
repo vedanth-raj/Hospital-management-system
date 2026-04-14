@@ -8,10 +8,14 @@ export async function GET(request: NextRequest) {
   if (!user || user.role !== 'doctor') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const numericUserId = typeof user.userId === 'number' ? user.userId : Number(user.userId);
+  if (Number.isNaN(numericUserId)) {
+    return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
+  }
 
   try {
     // Get doctor ID
-    const doctorResult = await query('SELECT id FROM doctors WHERE user_id = $1', [user.userId]);
+    const doctorResult = await query('SELECT id FROM doctors WHERE user_id = $1', [numericUserId]);
     if (doctorResult.rows.length === 0) {
       return NextResponse.json({ error: 'Doctor not found' }, { status: 404 });
     }
@@ -20,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // Get queue for this doctor
     const queueResult = await query(
-      `SELECT q.*, p.patient_id_unique, u.first_name, u.last_name, pat.date_of_birth
+      `SELECT q.*, p.patient_id_unique, u.first_name, u.last_name, p.date_of_birth
        FROM queues q
        JOIN patients p ON q.patient_id = p.id
        JOIN users u ON p.user_id = u.id
@@ -42,7 +46,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching doctor queue:', error);
-    return NextResponse.json({ queue: getDoctorQueue(user.userId) }, { status: 200 });
+    return NextResponse.json({ queue: getDoctorQueue(numericUserId) }, { status: 200 });
   }
 }
 

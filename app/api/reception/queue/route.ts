@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
   try {
     // Get max queue position for this doctor
     const maxPositionResult = await query(
-      'SELECT COALESCE(MAX(queue_position), 0) as max_pos FROM queues WHERE doctor_id = $1 AND status != "completed"',
+      "SELECT COALESCE(MAX(queue_position), 0) as max_pos FROM queues WHERE doctor_id = $1 AND status != 'completed'",
       [doctorId]
     );
 

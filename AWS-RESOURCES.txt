@@ -1,0 +1,190 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    AWS RESOURCES - HOSPITAL MANAGEMENT SYSTEM
+═══════════════════════════════════════════════════════════════════════════════
+
+ACCOUNT INFORMATION
+───────────────────────────────────────────────────────────────────────────────
+AWS Account ID: 972803002725
+IAM User: HMS
+Region: us-east-1
+Free Tier Status: Active
+
+EC2 INSTANCE
+───────────────────────────────────────────────────────────────────────────────
+Instance ID: i-056f474051a09fb07
+Instance Type: t3.micro (free tier eligible)
+Public IP: 54.242.171.2
+Private IP: 172.31.20.11
+Availability Zone: us-east-1c
+VPC: vpc-0ce5b7f4a82bca9ab
+Subnet: subnet-061feedf9341f8026
+Security Group: sg-0ed84c6f38af4f068
+Key Pair: hospital-app-key
+AMI: ami-0c02fb55956c7d316 (Amazon Linux 2)
+Status: Running
+Launch Time: 2026-04-14T20:15:13+00:00
+
+RDS DATABASE
+───────────────────────────────────────────────────────────────────────────────
+DB Instance Identifier: hospital-db
+DB Instance Class: db.t3.micro (free tier eligible)
+Engine: PostgreSQL
+Engine Version: 17.6
+Endpoint: hospital-db.c4ra6sksujdd.us-east-1.rds.amazonaws.com
+Port: 5432
+Master Username: postgres
+Master Password: HospitalDB2026Pass
+Database Name: hospital_db
+Allocated Storage: 20 GB
+Storage Type: gp2
+Multi-AZ: No
+Publicly Accessible: Yes
+VPC: vpc-0ce5b7f4a82bca9ab
+DB Subnet Group: default
+Security Group: default (VPC)
+Backup Retention Period: 1 day
+Preferred Backup Window: 04:30-05:00 UTC
+Preferred Maintenance Window: Thursday 07:40-08:10 UTC
+Status: Available
+ARN: arn:aws:rds:us-east-1:972803002725:db:hospital-db
+
+ECR REPOSITORY
+───────────────────────────────────────────────────────────────────────────────
+Repository Name: hospital-management-system
+Repository URI: 972803002725.dkr.ecr.us-east-1.amazonaws.com/hospital-management-system
+Image Tag: latest
+Image Digest: sha256:367d8df7667f63dbe6e465f9fa3088acab79689e5ad87f3eef76c2cc42e6a336
+Image Size: 304 MB
+Image Scan on Push: Enabled
+Encryption Type: AES256
+Status: Active
+ARN: arn:aws:ecr:us-east-1:972803002725:repository/hospital-management-system
+
+SECURITY GROUP
+───────────────────────────────────────────────────────────────────────────────
+Group ID: sg-0ed84c6f38af4f068
+Group Name: hospital-app-sg
+Description: Security group for Hospital Management System
+VPC: vpc-0ce5b7f4a82bca9ab
+
+Inbound Rules:
+  • Protocol: TCP, Port: 80, CIDR: 0.0.0.0/0 (HTTP)
+  • Protocol: TCP, Port: 443, CIDR: 0.0.0.0/0 (HTTPS)
+  • Protocol: TCP, Port: 3000, CIDR: 0.0.0.0/0 (App)
+
+Outbound Rules:
+  • All traffic allowed
+
+KEY PAIR
+───────────────────────────────────────────────────────────────────────────────
+Key Pair Name: hospital-app-key
+Key Type: RSA
+Fingerprint: (stored in AWS)
+File: hospital-app-key.pem
+Status: Created
+
+VPC & NETWORKING
+───────────────────────────────────────────────────────────────────────────────
+VPC ID: vpc-0ce5b7f4a82bca9ab
+VPC CIDR: 172.31.0.0/16
+Subnets: 6 (default subnets across availability zones)
+Internet Gateway: igw-0c5b7f4a82bca9ab
+Route Table: rtb-0c5b7f4a82bca9ab
+
+ELASTIC IP (if assigned)
+───────────────────────────────────────────────────────────────────────────────
+Status: Not assigned (using public IP)
+Public IP: 54.242.171.2
+
+CLOUDWATCH MONITORING
+───────────────────────────────────────────────────────────────────────────────
+EC2 Monitoring: Basic (5-minute intervals)
+RDS Monitoring: Basic (5-minute intervals)
+Alarms: Not configured (optional)
+
+BILLING & COST
+───────────────────────────────────────────────────────────────────────────────
+Free Tier Status: Active
+EC2 t3.micro: 750 hours/month (free)
+RDS db.t3.micro: 750 hours/month (free)
+Data Transfer: 100 GB/month outbound (free)
+Storage: 20 GB (free)
+ECR: 50 GB/month (free)
+Estimated Monthly Cost: $0.00
+
+TAGS
+───────────────────────────────────────────────────────────────────────────────
+EC2 Instance:
+  • Name: hospital-app
+
+RDS Instance:
+  • (No tags assigned)
+
+ECR Repository:
+  • (No tags assigned)
+
+IMPORTANT CREDENTIALS
+───────────────────────────────────────────────────────────────────────────────
+AWS Access Key ID: (configured in AWS CLI)
+AWS Secret Access Key: (configured in AWS CLI)
+AWS Region: us-east-1
+AWS Profile: default
+
+DATABASE CREDENTIALS
+───────────────────────────────────────────────────────────────────────────────
+Host: hospital-db.c4ra6sksujdd.us-east-1.rds.amazonaws.com
+Port: 5432
+Username: postgres
+Password: HospitalDB2026Pass
+Database: hospital_db
+Connection String: postgresql://postgres:HospitalDB2026Pass@hospital-db.c4ra6sksujdd.us-east-1.rds.amazonaws.com:5432/hospital_db
+
+APPLICATION CONFIGURATION
+───────────────────────────────────────────────────────────────────────────────
+Application URL: http://54.242.171.2:3000
+Application Port: 3000
+Nginx Port: 80
+Process Manager: PM2
+Node.js Version: 20.x
+Next.js Version: 16.1.6
+
+DEMO CREDENTIALS (after /api/init)
+───────────────────────────────────────────────────────────────────────────────
+Admin:     admin@hospital.com / admin123
+Doctor:    doctor@hospital.com / doctor123
+Reception: reception@hospital.com / reception123
+Patient:   patient@hospital.com / patient123
+
+USEFUL AWS CLI COMMANDS
+───────────────────────────────────────────────────────────────────────────────
+
+# Check EC2 status
+aws ec2 describe-instances --instance-ids i-056f474051a09fb07 --region us-east-1
+
+# Check RDS status
+aws rds describe-db-instances --db-instance-identifier hospital-db --region us-east-1
+
+# Check security group
+aws ec2 describe-security-groups --group-ids sg-0ed84c6f38af4f068 --region us-east-1
+
+# Check ECR repository
+aws ecr describe-repositories --repository-names hospital-management-system --region us-east-1
+
+# List EC2 instances
+aws ec2 describe-instances --region us-east-1
+
+# List RDS instances
+aws rds describe-db-instances --region us-east-1
+
+# Get EC2 public IP
+aws ec2 describe-instances --instance-ids i-056f474051a09fb07 --query 'Reservations[0].Instances[0].PublicIpAddress' --output text --region us-east-1
+
+# SSH into EC2
+ssh -i hospital-app-key.pem ec2-user@54.242.171.2
+
+# Connect to RDS
+psql -h hospital-db.c4ra6sksujdd.us-east-1.rds.amazonaws.com -U postgres -d hospital_db
+
+═══════════════════════════════════════════════════════════════════════════════
+                    Last Updated: April 15, 2026
+═══════════════════════════════════════════════════════════════════════════════

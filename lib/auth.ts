@@ -1,9 +1,26 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
+import { verifyFirebaseAuthToken } from '@/lib/firebase-admin';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const TOKEN_EXPIRY = '7d';
+
+type AuthUser = {
+  userId: number | string;
+  role: string;
+  firebase?: any;
+};
+
+function parseDemoToken(token: string): AuthUser | null {
+  if (!token.startsWith('demo:')) return null;
+  const parts = token.split(':');
+  if (parts.length < 3) return null;
+
+  const parsedUserId = Number(parts[1]);
+  return {
+    userId: Number.isNaN(parsedUserId) ? parts[1] : parsedUserId,
+    role: parts[2] || 'patient',
+  };
+}
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = await bcrypt.genSalt(10);
@@ -15,18 +32,35 @@ export async function comparePassword(password: string, hash: string): Promise<b
 }
 
 export function generateToken(userId: number, role: string): string {
-  return jwt.sign(
-    { userId, role, iat: Math.floor(Date.now() / 1000) },
-    JWT_SECRET,
-    { expiresIn: TOKEN_EXPIRY }
-  );
+  return `demo:${userId}:${role}:${TOKEN_EXPIRY}`;
 }
 
-export function verifyToken(token: string): any {
+export async function verifyToken(token: string): Promise<AuthUser | null> {
+  const demoUser = parseDemoToken(token);
+  if (demoUser) return demoUser;
+
+  const decoded = await verifyFirebaseAuthToken(token);
+  if (!decoded) return null;
+
+  return {
+    userId: decoded.uid,
+    role: (decoded.role as string) || 'patient',
+    firebase: decoded,
+  };
+}
+
+function roleFromToken(token: string): string {
+  const demoUser = parseDemoToken(token);
+  if (demoUser?.role) return demoUser.role;
+
+  const parts = token.split('.');
+  if (parts.length !== 3) return 'patient';
+
   try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (error) {
-    return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    return payload?.role || 'patient';
+  } catch {
+    return 'patient';
   }
 }
 
@@ -37,6 +71,14 @@ export async function setAuthCookie(token: string) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60, // 7 days
+    path: '/',
+  });
+
+  cookieStore.set('auth_role', roleFromToken(token), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60,
     path: '/',
   });
 }
@@ -50,11 +92,12 @@ export async function getAuthToken(): Promise<string | null> {
 export async function clearAuthCookie() {
   const cookieStore = await cookies();
   cookieStore.delete('auth_token');
+  cookieStore.delete('auth_role');
 }
 
 export async function getCurrentUser() {
   const token = await getAuthToken();
   if (!token) return null;
-  const decoded = verifyToken(token);
+  const decoded = await verifyToken(token);
   return decoded;
 }

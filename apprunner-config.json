@@ -1,0 +1,30 @@
+{
+  "ServiceName": "hospital-management-system",
+  "SourceConfiguration": {
+    "ImageRepository": {
+      "ImageIdentifier": "972803002725.dkr.ecr.us-east-1.amazonaws.com/hospital-management-system:latest",
+      "ImageRepositoryType": "ECR",
+      "ImageConfiguration": {
+        "Port": "3000",
+        "RuntimeEnvironmentVariables": {
+          "NODE_ENV": "production",
+          "NEXT_PUBLIC_APP_URL": "https://hospital-management-system.us-east-1.apprunner.amazonaws.com",
+          "DATABASE_URL": "postgresql://postgres:HospitalDB2026Pass@hospital-db.c5zzqvvvvvvv.us-east-1.rds.amazonaws.com:5432/hospital_db",
+          "JWT_SECRET": "your-super-secret-jwt-key-change-in-production",
+          "NEXT_PUBLIC_FIREBASE_API_KEY": "AIzaSyAbHhl7nwjRjIZE0qiAX8FC577UqYfQby8",
+          "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN": "smart-hospital-managemen-d2fb0.firebaseapp.com",
+          "NEXT_PUBLIC_FIREBASE_PROJECT_ID": "smart-hospital-managemen-d2fb0",
+          "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET": "smart-hospital-managemen-d2fb0.firebasestorage.app",
+          "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "718372719687",
+          "NEXT_PUBLIC_FIREBASE_APP_ID": "1:718372719687:web:d0ae99aa3d9a0033e23562"
+        }
+      }
+    }
+  },
+  "InstanceConfiguration": {
+    "Cpu": "0.5",
+    "Memory": "1",
+    "InstanceRoleArn": "arn:aws:iam::972803002725:role/AppRunnerECRAccessRole"
+  },
+  "AutoScalingConfigurationArn": "arn:aws:apprunner:us-east-1:972803002725:autoscalingconfiguration/default"
+}

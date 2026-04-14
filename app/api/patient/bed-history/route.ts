@@ -37,11 +37,15 @@ export async function GET(request: NextRequest) {
   if (!user || user.role !== 'patient') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const numericUserId = typeof user.userId === 'number' ? user.userId : Number(user.userId);
+  if (Number.isNaN(numericUserId)) {
+    return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
+  }
 
   try {
     await ensureBedAllocationTable();
 
-    const patientResult = await query('SELECT id FROM patients WHERE user_id = $1', [user.userId]);
+    const patientResult = await query('SELECT id FROM patients WHERE user_id = $1', [numericUserId]);
     if (patientResult.rows.length === 0) {
       return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
     }
@@ -77,6 +81,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching bed history:', error);
-    return NextResponse.json({ bedHistory: getPatientBedHistory(user.userId) }, { status: 200 });
+    return NextResponse.json({ bedHistory: getPatientBedHistory(numericUserId) }, { status: 200 });
   }
 }

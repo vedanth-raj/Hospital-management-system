@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-
-  serverExternalPackages: ["pg", "mongoose", "firebase-admin"],
+  output: "standalone",
+  serverExternalPackages: ["pg", "firebase-admin"],
 };
 
 export default nextConfig;

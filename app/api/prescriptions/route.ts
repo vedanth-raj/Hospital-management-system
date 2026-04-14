@@ -9,6 +9,11 @@ export async function GET(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const numericUserId = typeof user.userId === 'number' ? user.userId : Number(user.userId);
+  const role = user.role as 'admin' | 'doctor' | 'reception' | 'driver' | 'patient';
+  if (Number.isNaN(numericUserId)) {
+    return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
+  }
 
   try {
     let prescriptions: any = [];
@@ -22,7 +27,7 @@ export async function GET(request: NextRequest) {
          JOIN users du ON d.user_id = du.id
          WHERE p.patient_id = (SELECT id FROM patients WHERE user_id = $1)
          ORDER BY p.issued_date DESC`,
-        [user.id]
+        [numericUserId]
       );
     } else if (user.role === 'doctor') {
       // Get prescriptions issued by this doctor
@@ -34,7 +39,7 @@ export async function GET(request: NextRequest) {
          JOIN users pu ON patient.user_id = pu.id
          WHERE p.doctor_id = (SELECT id FROM doctors WHERE user_id = $1)
          ORDER BY p.issued_date DESC`,
-        [user.id]
+        [numericUserId]
       );
     } else if (user.role === 'admin') {
       // Get all prescriptions
@@ -52,11 +57,11 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      prescriptions: prescriptions.rows || getPrescriptions(user.id, user.role),
+      prescriptions: prescriptions.rows || getPrescriptions(numericUserId, role),
     });
   } catch (error) {
     console.error('Error fetching prescriptions:', error);
-    return NextResponse.json({ prescriptions: getPrescriptions(user.id, user.role) }, { status: 200 });
+    return NextResponse.json({ prescriptions: getPrescriptions(numericUserId, role) }, { status: 200 });
   }
 }
 
@@ -66,6 +71,10 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const numericUserId = typeof user.userId === 'number' ? user.userId : Number(user.userId);
+  if (Number.isNaN(numericUserId)) {
+    return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
+  }
 
   const body = await request.json();
   const { action, patientId, medication, dosage, frequency, duration, instructions, prescriptionId } = body;
@@ -73,7 +82,7 @@ export async function POST(request: NextRequest) {
   try {
     if (action === 'issue' && user.role === 'doctor') {
       // Issue new prescription
-      const doctorResult = await query('SELECT id FROM doctors WHERE user_id = $1', [user.id]);
+      const doctorResult = await query('SELECT id FROM doctors WHERE user_id = $1', [numericUserId]);
       if (doctorResult.rows.length === 0) {
         return NextResponse.json({ error: 'Doctor profile not found' }, { status: 400 });
       }

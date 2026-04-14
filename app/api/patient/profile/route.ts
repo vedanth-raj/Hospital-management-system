@@ -37,6 +37,10 @@ export async function GET(request: NextRequest) {
   if (!user || user.role !== 'patient') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const numericUserId = typeof user.userId === 'number' ? user.userId : Number(user.userId);
+  if (Number.isNaN(numericUserId)) {
+    return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
+  }
 
   try {
     await ensureBedAllocationTable();
@@ -47,7 +51,7 @@ export async function GET(request: NextRequest) {
        FROM patients p
        JOIN users u ON p.user_id = u.id
        WHERE p.user_id = $1`,
-      [user.userId]
+      [numericUserId]
     );
 
     if (patientResult.rows.length === 0) {
@@ -130,7 +134,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching patient profile:', error);
-    const profile = getPatientProfile(user.userId);
+    const profile = getPatientProfile(numericUserId);
     if (profile) {
       return NextResponse.json(profile, { status: 200 });
     }
@@ -142,6 +146,10 @@ export async function PUT(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user || user.role !== 'patient') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const numericUserId = typeof user.userId === 'number' ? user.userId : Number(user.userId);
+  if (Number.isNaN(numericUserId)) {
+    return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
   }
 
   const data = await request.json();
@@ -169,19 +177,19 @@ export async function PUT(request: NextRequest) {
         allowedPatientUpdates.city || null,
         allowedPatientUpdates.state || null,
         allowedPatientUpdates.zipCode || null,
-        user.userId,
+        numericUserId,
       ]
     );
 
     // Update user phone if provided
     if (typeof allowedPatientUpdates.phone !== 'undefined') {
-      await query('UPDATE users SET phone = $1 WHERE id = $2', [allowedPatientUpdates.phone || null, user.userId]);
+      await query('UPDATE users SET phone = $1 WHERE id = $2', [allowedPatientUpdates.phone || null, numericUserId]);
     }
 
     return NextResponse.json({ message: 'Profile updated successfully' });
   } catch (error) {
     console.error('Error updating patient profile:', error);
-    const updated = updatePatientProfile(user.userId, allowedPatientUpdates);
+    const updated = updatePatientProfile(numericUserId, allowedPatientUpdates);
     if (updated) {
       return NextResponse.json({ message: 'Profile updated successfully' });
     }

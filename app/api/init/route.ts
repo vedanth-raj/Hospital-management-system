@@ -2,6 +2,37 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db-server';
 import { hashPassword } from '@/lib/auth';
 
+async function ensureUsersColumns() {
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS staff_id VARCHAR(8) UNIQUE`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20)`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+}
+
+async function ensureLegacySchema() {
+  await query(`ALTER TABLE patients ADD COLUMN IF NOT EXISTS patient_id_unique VARCHAR(20) UNIQUE`);
+  await query(`ALTER TABLE patients ADD COLUMN IF NOT EXISTS date_of_birth DATE`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS queues (
+      id SERIAL PRIMARY KEY,
+      doctor_id INTEGER NOT NULL REFERENCES doctors(id),
+      patient_id INTEGER NOT NULL REFERENCES patients(id),
+      queue_position INTEGER NOT NULL,
+      priority VARCHAR(20) DEFAULT 'normal',
+      check_in_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      estimated_wait_time_minutes INTEGER DEFAULT 15,
+      status VARCHAR(30) DEFAULT 'waiting',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await query(`CREATE INDEX IF NOT EXISTS idx_queues_doctor_status ON queues(doctor_id, status)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_queues_patient_status ON queues(patient_id, status)`);
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Check if database tables exist
@@ -157,6 +188,9 @@ export async function GET(request: NextRequest) {
         // Tables might already exist
       }
     }
+
+    await ensureUsersColumns();
+    await ensureLegacySchema();
 
     // Seed demo data if users table is empty
     const usersCount = await query('SELECT COUNT(*) as count FROM users');

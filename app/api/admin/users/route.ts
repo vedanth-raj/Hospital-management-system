@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser, hashPassword } from '@/lib/auth';
 import { query } from '@/lib/db-server';
 import { createStaffUser, getStaffUsers, toggleStaffActive, updateStaffUser } from '@/lib/demo-store';
+import { syncStaffUserToFirestore } from '@/lib/staff-firestore-sync';
 
 const ROLE_PREFIX: Record<string, string> = {
   admin: 'A', doctor: 'D', reception: 'R', driver: 'E', patient: 'P',
@@ -14,7 +15,10 @@ function generateStaffId(role: string): string {
 
 async function ensureColumns() {
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS staff_id VARCHAR(9) UNIQUE`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20)`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
 }
 
 export async function GET(request: NextRequest) {
@@ -44,6 +48,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching staff:', error);
+    if (process.env.DATABASE_URL) {
+      return NextResponse.json({ error: 'Failed to fetch staff users' }, { status: 500 });
+    }
     return NextResponse.json({ users: getStaffUsers() }, { status: 200 });
   }
 }
@@ -141,12 +148,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    await syncStaffUserToFirestore({
+      userId: Number(created.id),
+      staffId: String(created.staff_id),
+      firstName: String(created.first_name),
+      lastName: String(created.last_name),
+      email: normalizedEmail,
+      phone: normalizedPhone || null,
+      role: String(created.role),
+      isActive: true,
+      mustChangePassword: true,
+    }).catch((syncError) => {
+      console.error('Firestore staff sync warning:', syncError);
+    });
+
     return NextResponse.json({
       message: 'Staff account created',
       user: { id: created.id, staffId: created.staff_id, firstName: created.first_name, lastName: created.last_name, role: created.role },
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating staff:', error);
+    if (process.env.DATABASE_URL) {
+      return NextResponse.json({ error: 'Failed to create staff account' }, { status: 500 });
+    }
     const demo = createStaffUser({ firstName, lastName, email, phone, role, specialization });
     if (!demo) return NextResponse.json({ error: 'Staff ID conflict or DB error' }, { status: 500 });
     return NextResponse.json({
@@ -171,6 +195,30 @@ export async function PATCH(request: NextRequest) {
         `UPDATE users SET is_active = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND role != 'patient'`,
         [body.isActive, body.userId]
       );
+
+      const rowResult = await query(
+        `SELECT id, staff_id, first_name, last_name, email, phone, role, is_active, must_change_password
+         FROM users WHERE id = $1 AND role != 'patient' LIMIT 1`,
+        [body.userId]
+      );
+
+      const updatedUser = rowResult.rows[0];
+      if (updatedUser) {
+        await syncStaffUserToFirestore({
+          userId: Number(updatedUser.id),
+          staffId: String(updatedUser.staff_id || ''),
+          firstName: String(updatedUser.first_name || ''),
+          lastName: String(updatedUser.last_name || ''),
+          email: String(updatedUser.email || ''),
+          phone: updatedUser.phone ? String(updatedUser.phone) : null,
+          role: String(updatedUser.role || ''),
+          isActive: Boolean(updatedUser.is_active),
+          mustChangePassword: Boolean(updatedUser.must_change_password),
+        }).catch((syncError) => {
+          console.error('Firestore staff sync warning:', syncError);
+        });
+      }
+
       return NextResponse.json({ message: `User ${body.isActive ? 'activated' : 'deactivated'}` });
     } catch {
       toggleStaffActive(body.userId, body.isActive);
@@ -182,6 +230,12 @@ export async function PATCH(request: NextRequest) {
   if (body.userId) {
     try {
       await ensureColumns();
+      const existingResult = await query(
+        `SELECT email FROM users WHERE id = $1 AND role != 'patient' LIMIT 1`,
+        [body.userId]
+      );
+      const previousEmail = existingResult.rows[0]?.email ? String(existingResult.rows[0].email) : null;
+
       await query(
         `UPDATE users
          SET first_name = COALESCE($1, first_name),
@@ -192,11 +246,40 @@ export async function PATCH(request: NextRequest) {
          WHERE id = $5 AND role != 'patient'`,
         [body.firstName || null, body.lastName || null, body.email || null, body.phone || null, body.userId]
       );
+
+      const updatedResult = await query(
+        `SELECT id, staff_id, first_name, last_name, email, phone, role, is_active, must_change_password
+         FROM users WHERE id = $1 AND role != 'patient' LIMIT 1`,
+        [body.userId]
+      );
+
+      const updatedUser = updatedResult.rows[0];
+      if (updatedUser) {
+        await syncStaffUserToFirestore({
+          userId: Number(updatedUser.id),
+          staffId: String(updatedUser.staff_id || ''),
+          firstName: String(updatedUser.first_name || ''),
+          lastName: String(updatedUser.last_name || ''),
+          email: String(updatedUser.email || ''),
+          phone: updatedUser.phone ? String(updatedUser.phone) : null,
+          role: String(updatedUser.role || ''),
+          isActive: Boolean(updatedUser.is_active),
+          mustChangePassword: Boolean(updatedUser.must_change_password),
+          previousEmail,
+        }).catch((syncError) => {
+          console.error('Firestore staff sync warning:', syncError);
+        });
+      }
+
       if (body.specialization) {
         await query(`UPDATE doctors SET specialization = $1 WHERE user_id = $2`, [body.specialization, body.userId]);
       }
       return NextResponse.json({ message: 'Staff updated' });
-    } catch {
+    } catch (error) {
+      if (process.env.DATABASE_URL) {
+        console.error('Error updating staff:', error);
+        return NextResponse.json({ error: 'Failed to update staff user' }, { status: 500 });
+      }
       updateStaffUser(body.userId, body);
       return NextResponse.json({ message: 'Staff updated' });
     }

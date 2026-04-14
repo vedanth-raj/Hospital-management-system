@@ -8,10 +8,14 @@ export async function GET(request: NextRequest) {
   if (!user || user.role !== 'patient') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const numericUserId = typeof user.userId === 'number' ? user.userId : Number(user.userId);
+  if (Number.isNaN(numericUserId)) {
+    return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
+  }
 
   try {
     // Get patient ID
-    const patientResult = await query('SELECT id FROM patients WHERE user_id = $1', [user.userId]);
+    const patientResult = await query('SELECT id FROM patients WHERE user_id = $1', [numericUserId]);
     if (patientResult.rows.length === 0) {
       return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
     }
@@ -42,7 +46,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching appointments:', error);
-    return NextResponse.json({ appointments: getPatientAppointments(user.userId) }, { status: 200 });
+    return NextResponse.json({ appointments: getPatientAppointments(numericUserId) }, { status: 200 });
   }
 }
 
@@ -51,12 +55,16 @@ export async function POST(request: NextRequest) {
   if (!user || user.role !== 'patient') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const numericUserId = typeof user.userId === 'number' ? user.userId : Number(user.userId);
+  if (Number.isNaN(numericUserId)) {
+    return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
+  }
 
   const { doctorId, appointmentDate, appointmentTime, reasonForVisit } = await request.json();
 
   try {
     // Get patient ID
-    const patientResult = await query('SELECT id FROM patients WHERE user_id = $1', [user.userId]);
+    const patientResult = await query('SELECT id FROM patients WHERE user_id = $1', [numericUserId]);
     if (patientResult.rows.length === 0) {
       return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
     }
@@ -77,7 +85,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Error creating appointment:', error);
-    const appointment = createPatientAppointment(user.userId, {
+    const appointment = createPatientAppointment(numericUserId, {
       doctorId,
       appointmentDate,
       appointmentTime,
