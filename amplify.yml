@@ -3,8 +3,8 @@ frontend:
   phases:
     preBuild:
       commands:
-        - npm ci --include=dev
-        - npm install
+        - npm ci
+        - npm install --save-dev
     build:
       commands:
         - npm run build
