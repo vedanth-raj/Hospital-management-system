@@ -18,3 +18,4 @@ node_modules/
 
 # Local-only bootstrap helper (must never be committed)
 scripts/bootstrap-firestore.mjs
+.vercel
