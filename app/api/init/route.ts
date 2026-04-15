@@ -34,6 +34,11 @@ async function ensureLegacySchema() {
 }
 
 export async function GET(request: NextRequest) {
+  // If no DATABASE_URL, return success immediately (demo mode)
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json({ success: true, message: 'Running in demo mode. No database required.' });
+  }
+
   try {
     // Check if database tables exist
     const tablesResult = await query(`

@@ -26,6 +26,9 @@ export async function GET(request: NextRequest) {
   if (!user || user.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json({ users: getStaffUsers() }, { status: 200 });
+  }
   try {
     await ensureColumns();
     const result = await query(

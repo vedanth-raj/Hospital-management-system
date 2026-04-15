@@ -31,7 +31,7 @@ async function initializePool() {
 // Get database client for transactions
 export async function getClient() {
   const pool = await initializePool();
-  if (!pool) throw new Error('Database not configured');
+  if (!pool) throw new Error('No DATABASE_URL configured — using demo store');
   return pool.connect();
 }
 
@@ -39,7 +39,7 @@ export async function getClient() {
 export async function query(text: string, params?: any[]) {
   const pool = await initializePool();
   if (!pool) {
-    return { rows: [], command: 'SELECT' };
+    throw new Error('No DATABASE_URL configured — using demo store');
   }
   
   try {

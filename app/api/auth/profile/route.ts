@@ -8,19 +8,20 @@ export async function GET(request: NextRequest) {
     const user = await getCurrentUser();
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const numericUserId =
       typeof user.userId === 'number' ? user.userId : Number(user.userId);
     if (Number.isNaN(numericUserId)) {
-      return NextResponse.json(
-        { error: 'Invalid user session' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
+    }
+
+    // Try demo store first if no DB
+    if (!process.env.DATABASE_URL) {
+      const demoProfile = getDemoAuthProfile(numericUserId);
+      if (demoProfile) return NextResponse.json(demoProfile, { status: 200 });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Get user details
