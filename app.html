@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 50px;
+            max-width: 700px;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            color: #667eea;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        p {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+            line-height: 1.8;
+        }
+        
+        .features {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        
+        .features h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .feature-list {
+            list-style: none;
+        }
+        
+        .feature-list li {
+            padding: 12px 0;
+            color: #555;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .feature-list li:before {
+            content: "✓";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 15px;
+            font-size: 1.2em;
+        }
+        
+        .status-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 5px;
+            color: #2e7d32;
+        }
+        
+        .status-box strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 14px 35px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #999;
+            font-size: 0.95em;
+        }
+        
+        .deployment-info {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            color: #e65100;
+            font-size: 0.95em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🏥</div>
+        <h1>Hospital Management System</h1>
+        <div class="subtitle">Healthcare Management Solution</div>
+        
+        <p>Welcome to your Hospital Management System deployed on AWS!</p>
+        
+        <div class="status-box">
+            <strong>✓ Deployment Successful!</strong>
+            Your application is now live and ready to use.
+        </div>
+        
+        <div class="features">
+            <h3>System Features</h3>
+            <ul class="feature-list">
+                <li>Patient Management</li>
+                <li>Doctor Scheduling</li>
+                <li>Appointment Booking</li>
+                <li>Medical Records</li>
+                <li>Billing System</li>
+                <li>Emergency Response</li>
+                <li>Real-time Notifications</li>
+                <li>Analytics Dashboard</li>
+            </ul>
+        </div>
+        
+        <div class="deployment-info">
+            <strong>Deployment Details:</strong><br>
+            Platform: AWS S3 + CloudFront<br>
+            Region: US East (N. Virginia)<br>
+            Protocol: HTTPS/SSL<br>
+            CDN: Global (280+ edge locations)
+        </div>
+        
+        <p style="color: #667eea; font-weight: 600; margin-top: 30px;">
+            Your application is secured with HTTPS and served globally via CloudFront CDN.
+        </p>
+        
+        <div class="button-group">
+            <a href="https://github.com/vedanth-raj/Hospital-management-system" class="btn btn-primary">View Repository</a>
+            <a href="https://aws.amazon.com/console/" class="btn btn-secondary">AWS Console</a>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Hospital Management System v1.0</strong></p>
+            <p>Deployed on AWS S3 + CloudFront</p>
+            <p>© 2026 All rights reserved</p>
+            <p style="margin-top: 15px; color: #667eea;">
+                <strong>Status:</strong> ✓ Live and Running
+            </p>
+        </div>
+    </div>
+</body>
+</html>
