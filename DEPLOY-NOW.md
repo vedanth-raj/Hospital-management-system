@@ -1,163 +1,121 @@
-# Deploy Now - Hospital Management System on AWS
+# Deploy Now - Quick Steps
 
-## ✅ Project Uploaded to GitHub
+## Your Resources Ready ✅
 
-Your project is now available at:
-```
-https://github.com/vedanth-raj/Hospital-management-system.git
-```
+- **EC2 Instance**: `54.242.171.2` (t3.micro - free tier)
+- **RDS Database**: `hospital-db.c4ra6sksujdd.us-east-1.rds.amazonaws.com`
+- **GitHub Repo**: `https://github.com/vedanth-raj/Hospital-management-system.git`
 
 ---
 
-## 🚀 Deploy to EC2 (When SSH is Ready)
+## Step 1: SSH into EC2 (2 minutes)
 
-### Step 1: Wait for EC2 to Initialize
-The EC2 instance is still initializing. Wait 5-10 minutes, then try SSH again:
-
-```bash
+```powershell
+# Windows PowerShell
 ssh -i hospital-app-key.pem ec2-user@54.242.171.2
 ```
 
-### Step 2: Clone the Repository
+**If connection times out:**
+- Wait 2-3 minutes for EC2 to initialize
+- Try again
+
+---
+
+## Step 2: Deploy Application (10-15 minutes)
+
+Once SSH is connected, run:
+
 ```bash
+# Clone repository
 git clone https://github.com/vedanth-raj/Hospital-management-system.git hospital-app
 cd hospital-app
-```
 
-### Step 3: Run Deployment Script
-```bash
+# Run deployment script
 chmod +x ec2-userdata.sh
 ./ec2-userdata.sh
+
+# This will:
+# - Install Node.js 20
+# - Install PM2 (process manager)
+# - Build Next.js app
+# - Setup Nginx reverse proxy
+# - Start application
 ```
 
-This script will:
-- Install Node.js 20
-- Install PM2 (process manager)
-- Install Nginx (reverse proxy)
-- Clone the repository
-- Install dependencies
-- Build the Next.js app
-- Start the application
-- Configure Nginx
+**Wait for completion** (you'll see "Deployment complete!")
 
-### Step 4: Initialize Database
+---
+
+## Step 3: Initialize Database (1 minute)
+
 ```bash
 curl http://54.242.171.2:3000/api/init
 ```
 
-### Step 5: Access Application
+---
+
+## Step 4: Test Application (1 minute)
+
+Open browser and go to:
 ```
 http://54.242.171.2:3000
 ```
 
+**Demo Credentials:**
+- Admin: `admin@hospital.com` / `admin123`
+- Doctor: `doctor@hospital.com` / `doctor123`
+- Reception: `reception@hospital.com` / `reception123`
+- Patient: `patient@hospital.com` / `patient123`
+
 ---
 
-## 📝 Demo Credentials
+## Step 5: Setup CloudFront (Optional - 10 minutes)
 
-After running `/api/init`, use these credentials:
+For faster global access with HTTPS:
+
+1. Go to **AWS Console → CloudFront**
+2. Click **"Create Distribution"**
+3. Set **Origin Domain**: `54.242.171.2`
+4. Set **Protocol**: HTTP
+5. Set **HTTP Port**: 80
+6. Set **Viewer Protocol Policy**: Redirect HTTP to HTTPS
+7. Set **Cache Policy**: Managed-CachingDisabled
+8. Click **"Create Distribution"**
+9. Wait 5-10 minutes
+10. Access via CloudFront URL (e.g., `https://d123abc.cloudfront.net`)
+
+---
+
+## Total Time: ~30 minutes
+
+✅ EC2 Deployment: 15 minutes
+✅ Database Init: 1 minute
+✅ CloudFront Setup: 10 minutes
+
+---
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| SSH timeout | Wait 2-3 min for EC2 to initialize |
+| Build fails | Check Node.js installed: `node -v` |
+| App won't start | Check logs: `pm2 logs hospital-app` |
+| Database error | Verify credentials in `.env.production` |
+| CloudFront 502 | Wait 5 min, check EC2 is running |
+
+---
+
+## Database Details
 
 ```
-Admin:     admin@hospital.com / admin123
-Doctor:    doctor@hospital.com / doctor123
-Reception: reception@hospital.com / reception123
-Patient:   patient@hospital.com / patient123
+Host: hospital-db.c4ra6sksujdd.us-east-1.rds.amazonaws.com
+User: postgres
+Password: HospitalDB2026Pass
+Database: hospital_db
+Port: 5432
 ```
 
 ---
 
-## 🔧 AWS Resources
-
-| Resource | Details |
-|----------|---------|
-| **EC2 Instance** | i-056f474051a09fb07 (54.242.171.2) |
-| **RDS Database** | hospital-db.c4ra6sksujdd.us-east-1.rds.amazonaws.com |
-| **Database User** | postgres |
-| **Database Pass** | HospitalDB2026Pass |
-| **Database Name** | hospital_db |
-| **Region** | us-east-1 |
-| **Free Tier** | ✅ Yes |
-
----
-
-## 🛠️ Troubleshooting SSH Connection Timeout
-
-If you get "Connection timed out":
-
-1. **Wait longer** - EC2 takes 5-10 minutes to fully initialize
-2. **Check instance status:**
-   ```bash
-   aws ec2 describe-instances --instance-ids i-056f474051a09fb07 --region us-east-1
-   ```
-3. **Check security group:**
-   ```bash
-   aws ec2 describe-security-groups --group-ids sg-0ed84c6f38af4f068 --region us-east-1
-   ```
-4. **Try again after 10 minutes**
-
----
-
-## 📚 Documentation Files
-
-All documentation is in the repository:
-
-- `QUICK-START.md` - 5-minute deployment guide
-- `AWS-DEPLOYMENT-GUIDE.md` - Detailed instructions
-- `DEPLOYMENT-SUMMARY.md` - Complete overview
-- `DEPLOYMENT-CHECKLIST.md` - Step-by-step checklist
-- `AWS-RESOURCES.txt` - All resource details
-- `Dockerfile` - Docker configuration
-- `ec2-userdata.sh` - Automated deployment script
-
----
-
-## 🔒 Security Notes
-
-⚠️ **Important:**
-
-1. Change `JWT_SECRET` in `.env.production` after deployment
-2. Change RDS password from `HospitalDB2026Pass`
-3. Keep `hospital-app-key.pem` secure
-4. Monitor AWS billing to stay within free tier
-
----
-
-## 💰 Cost
-
-**Monthly Cost: $0.00** (within AWS free tier)
-
-- EC2 t3.micro: 750 hours/month ✅
-- RDS db.t3.micro: 750 hours/month ✅
-- Data Transfer: 100 GB/month ✅
-- Storage: 20 GB ✅
-
----
-
-## ✨ What's Next
-
-1. ⏳ Wait for EC2 to initialize (5-10 minutes)
-2. 🔑 SSH into EC2 with the key pair
-3. 📥 Clone the repository from GitHub
-4. 🚀 Run the deployment script
-5. 🗄️ Initialize the database
-6. 🌐 Access the application
-7. 🧪 Test with demo credentials
-8. 🔐 Configure security settings
-
----
-
-## 📞 Support
-
-If you need help:
-
-1. Check the documentation files in the repository
-2. Review AWS CloudWatch logs
-3. SSH into EC2 and check PM2 logs: `pm2 logs hospital-app`
-4. Check Nginx logs: `sudo tail -f /var/log/nginx/error.log`
-
----
-
-**Status:** ✅ Ready for deployment  
-**GitHub:** https://github.com/vedanth-raj/Hospital-management-system.git  
-**EC2 IP:** 54.242.171.2  
-**Last Updated:** April 15, 2026
-
+**Ready? Start with Step 1!** 🚀
