@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        
+        .logo {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+        
+        p {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .status {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 5px;
+            text-align: left;
+        }
+        
+        .status h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .status ul {
+            list-style: none;
+            color: #555;
+        }
+        
+        .status li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .status li:last-child {
+            border-bottom: none;
+        }
+        
+        .status li:before {
+            content: "✓ ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #f0f4ff;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #999;
+            font-size: 0.9em;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🏥</div>
+        <h1>Hospital Management System</h1>
+        <p>Your healthcare management solution is being deployed</p>
+        
+        <div class="status">
+            <h3>Deployment Status</h3>
+            <ul>
+                <li>AWS S3 Bucket Created</li>
+                <li>CloudFront Distribution Active</li>
+                <li>HTTPS/SSL Enabled</li>
+                <li>Global CDN Ready</li>
+            </ul>
+        </div>
+        
+        <p style="color: #667eea; font-weight: bold;">
+            <span class="loading"></span>
+            Full application deployment in progress...
+        </p>
+        
+        <div class="button-group">
+            <a href="https://github.com/vedanth-raj/Hospital-management-system" class="btn btn-primary">View Repository</a>
+            <a href="https://aws.amazon.com" class="btn btn-secondary">AWS Console</a>
+        </div>
+        
+        <div class="footer">
+            <p>Hospital Management System v1.0</p>
+            <p>Deployed on AWS S3 + CloudFront</p>
+            <p>© 2026 All rights reserved</p>
+        </div>
+    </div>
+</body>
+</html>
